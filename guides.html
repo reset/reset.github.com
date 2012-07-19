@@ -1,0 +1,15 @@
+---
+layout: page
+title: Guides 
+header: Guides
+group: navigation
+---
+{% include JB/setup %}
+
+<h2>Guides</h2>
+
+<ul>
+{% assign pages_list = site.pages %}
+{% assign group = 'guides' %}
+{% include JB/pages_list %}
+</ul>
