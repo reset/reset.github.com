@@ -371,7 +371,82 @@ You should now have your application code deployed to `/srv/myface/current`
     $ bundle exec vagrant ssh -c "ls -lah /srv/myface/current"
     lrwxrwxrwx 1 root root 26 Jul 23 22:14 /srv/myface/current -> /srv/myface/releases/1.0.0
 
-## Explaining the deployed structure
+## The deployed application structure
+
+The value passed to the `deploy_to` attribute on artifact_deploy resource is where we want to deploy our code to. You'll notice, though, that the contents of the archive weren't extracted directly into `/srv/myface`. Instead the code was placed in a directory of the same name as the value given for the `version` attribute in the releases directory sub directory. This is done so we can have multiple different versions of our code on the same node.
+
+The `deploy_to` directory contains three sub directories
+
+    lrwxrwxrwx  1 root   root     26 Jul 23 22:14 current -> /srv/myface/releases/1.0.0
+    drwxr-xr-x  3 root   root   4.0K Jul 23 22:12 releases
+    drwxr-xr-x  5 myface myface 4.0K Jul 23 22:12 shared
+
+* releases directory that contains directories whose names are SemVer versions and contain the contents of the artifact of the same version
+* current directory which points to the release directory of the version of our software that we deem 'active'
+* shared directory that contains common files that we want to persist between artifact versions. Log files are a good example of a shared file
+
+This deploy structure was made popular by [Capistrano](https://github.com/capistrano/capistrano). If you are familiar with Capistrano's than this should be very familiar to you.
+
+# Refactoring into attributes
+
+If you've got a good eye for good development practices you might have noticed that we repeated ourself quite a bit in our default recipe, specifically when referencing the group and user. We used the string "myface" in our first pass to identify the group and user name and also needed to give that to the artifact_deploy resource.
+
+It's very common to need to provide repetitive data to resources in a Chef recipe and a good idea to abstract these into an a primitive that Chef calls an [Attribute](http://wiki.opscode.com/display/chef/Attributes). An attribute holds configurable and searchable node data. 
+
+This refactor is valuable for a few reasons
+
+* Ensures that a cookbook author does not typo the group or user in a change
+* Allows an operator to customize the group and user name
+* Other cookbook authors can query the node about this information and use it in recipes of their own
+
+You should __always abstract your tunebles and constants into attributes__. Let's [DRY](http://en.wikipedia.org/wiki/Don't_repeat_yourself) up our code and replace these strings with attributes.
+
+Open the default recipe for editing at `myface/recipes/default.rb` and replace the "myface" string for user with `node[:myface][:user]` and the "myface" string for group with `node[:myface][:group]`. Now your default recipe should look like this
+
+    group node[:myface][:group]
+
+    user node[:myface][:user] do
+      group node[:myface][:group]
+      system true
+      shell "/bin/bash"
+    end
+
+    artifact_deploy "myface" do
+      version "1.0.0"
+      artifact_location "http://dl.dropbox.com/u/31081437/myface-1.0.0.tar.gz"
+      deploy_to "/srv/myface"
+      owner node[:myface][:user]
+      group node[:myface][:group]
+      action :deploy
+    end
+
+Within a recipe attributes are accessed on the [Node Object](http://wiki.opscode.com/display/chef/Recipes#Recipes-NodeObject). Attributes are accessed in a similar fashion to how you would interact with a Hash in Ruby. You can use a symbol or a string for keys in your attributes and they are interchangable, Chef will not complain and tell you that your attribute is not defined if you use a string when you initialized it with a symbol. Although you can use strings, it is __strongly recommended that you [use symbols for keys in Ruby](http://www.robertsosinski.com/2009/01/11/the-difference-between-ruby-symbols-and-strings/)__.
+
+So let's re-provision with Vagrant and see how our refactor went
+
+    $ bundle exec vagrant provision
+    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: *** Chef 10.12.0 ***
+    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Run List is [recipe[myface::default]]
+    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Run List expands to [myface::default]
+    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Starting Chef Run for localhost
+    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Running start handlers
+    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Start handlers complete.
+    [Mon, 23 Jul 2012 23:37:07 +0000] ERROR: Running exception handlers
+    [Mon, 23 Jul 2012 23:37:07 +0000] ERROR: Exception handlers complete
+    [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: NoMethodError: undefined method `[]' for nil:NilClass
+    Chef never successfully completed! Any errors should be visible in the
+    output above. Please fix your recipes so that they properly complete.
+
+Not so well... it sesems that we have an undefined method somewhere!? 
+
+    [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: NoMethodError: undefined method `[]' for nil:NilClass
+
+Well, yes and no. This cryptic error message is a very common and people new to Ruby are often confused by it at first so let's break it down. Everything in Ruby is an object - even Nil. Ruby also allows the characters `[` and `]` in function definitions. When we break it down we're attempting to call the function `[]` on an instance of nil. This happens when we have a nested attribute like `node[:myface][:user]`. Because we never initialized the `node[:myface]` attribute it will evaluate to nil by default. Asking for the attribute `:user` from `nil` results in the no method error that we see above. We can easily remedy this by initializing our attributes. You should __always initialize your attributes before using them__.
+
+## Initialize your attributes
 
 # Incrementing versions
 
