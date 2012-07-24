@@ -6,7 +6,9 @@ group: guides
 ---
 {% include JB/setup %}
 
-This guide will walk you through preparing an OSX machine for developing a new Chef Cookbook for a java web application that you've been developing called "myface".
+This is an advanced Chef guide for application developers that want to use Chef to configure and deploy their software. This guide will walk you through setting up an OSX machine with a suitable development environment and then writing a new Chef Cookbook for a java web application that you've been working on called _myface_.
+
+You will be introduced to Vagrant and VirtualBox which will be used in conjunction with Chef for provisioning virtual machines on your local computer to quickly iterate and test your application's cookbook. I will also be introducing you to Berkshelf which you will use for resolving cookbook dependencies and retrieving them. Newcomers to Ruby may be unfamiliar with Ruby, rbenv, and Bundler but I'll walk you through a simple setup here as well.
 
 # System Setup
 
@@ -69,14 +71,6 @@ VirtualBox is a virtualization solution for creating virtual machines on your lo
 
 Download Virtualbox from the [Virtualbox Downloads Page](https://www.virtualbox.org/wiki/Downloads) and then install it. We will be using version 4.1.18 in this guide.
 
-## Install Vagrant
-
-Vagrant is used in conjunction with VirtualBox and Chef to provide you with a command line tool to quickly manipulate virtual machines and rapidly iterate on your cookbook.
-
-Install it with the gem commmand
-
-    $ gem install vagrant
-
 # Creating the Cookbook
 
 Let's begin by generating a new cookbook for our application. We'll call it "myface" to match the name of our web application.
@@ -115,7 +109,9 @@ Switch into the directory of the newly created cookbook and install the Gem depe
     $ cd myface
     $ bundle install
 
-This will install Vagrant, Berkshelf, and thor-foodcritic. We will be using Vagrant for building our virtual environment, Berkshelf for managing our cookbook dependencies, and thor-foodcritic to lint test our cookbook.
+Bundler will install all of the dependent RubyGems and garauntee that you have the right versions.
+
+## Starting your virtual machine
 
 A `Vagrantfile` was generated for you with a boilerplate configuration that should be suitable for our needs. The Vagrantfile is configured to download and boot a CentOS 6.3 Vagrant Box and provision it with `chef-solo`. I recommend sticking with these defaults while you are working through this guide.
 
