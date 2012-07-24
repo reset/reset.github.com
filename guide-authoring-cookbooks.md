@@ -216,7 +216,6 @@ The important bit here is in the lines prefaced with FATAL.
 When inspecting a Chef stacktrace the source of your problem is generally marked by FATAL. In this case the resource artifact_deploy cannot be found. If we inspected the stacktrace that was dumped to `/tmp/vagrant-chef-1/chef-stacktrace.out` in our virtual machine we'll see exactly which line caused this fatal error.
 
     $ bundle exec vagrant ssh
-
     [vagrant@localhost ~]$ cat /tmp/vagrant-chef-1/chef-stacktrace.out
     Generated at 2012-07-23 20:48:53 +0000
     NameError: Cannot find a resource for artifact_deploy on centos version 6.3
@@ -315,12 +314,24 @@ Looks like we have the same error as before even after we've told the myface coo
 
 After you've got your `metadata.rb` setup with some cookbook dependencies you need gather those dependencies and make them available to Vagrant. This can easily be done with Berkshelf
 
-    $ bundle exec berks in --shims
+    $ bundle exec berks install --shims
     Using myface (0.0.1) at path: '/Users/reset/code/myface'
     Installing artifact (0.10.1) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
     Shims written to: '/Users/reset/code/myface/cookbooks'
 
-The `--shims` flag is very important to include. In case you have forgotten what shims are, they are the go between for your cookbooks on your host machine to your virtual machine - they are what make your cookbooks available within your virtual machine.
+The `--shims` flag is very important to include. In case you have forgotten what shims are; shims are the go between for your cookbooks on your host machine to your virtual machine. They are what make your cookbooks available within your virtual machine.
+
+You may be wondering how Berkshelf was able to figure out where the artifact cookbook was located and how it retrieved it. When we generated the cookbook earlier on it created a file called `Berksfile` at the root of the myface cookbook. This file is read by the `berks` command when you run the install command. If you open the Berksfile that was generated for you, you will see just one line with one word
+
+    metadata
+
+If you are familiar with RubyGems and Bundler this is similar to the their `gemspec` keyword. Berkshelf will inspect the `metadata.rb` file of the cookbook and recursively download the dependencies of your cookbook and their dependencies (and so on). Berkshelf will search the Opscode community site for a cookbook matching the version constraint if you do not explicitly provide a source for the artifact cookbook in your Berksfile.
+
+If the version of the artifact cookbook wasn't available on the Opscode community site or you just want to host things locally an explicit source can be provided for where the cookbook can be found
+
+    cookbook 'artifact', '~> 0.10.1', chef_api: :knife
+
+This entry in your Berksfile would tell Berkshelf to look at at Chef API using your Knife configuration for authorization to download the artifact cookbook. Let's leave things as is for now for the purposes of this guide.
 
 Now if we re-run the Vagrant provisioner we should no longer have a NameError exception raised for the missing artifact_deploy Light-weight Resource and Provider (LWRP).
 
@@ -444,9 +455,69 @@ Not so well... it sesems that we have an undefined method somewhere!?
     [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
     [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: NoMethodError: undefined method `[]' for nil:NilClass
 
-Well, yes and no. This cryptic error message is a very common and people new to Ruby are often confused by it at first so let's break it down. Everything in Ruby is an object - even Nil. Ruby also allows the characters `[` and `]` in function definitions. When we break it down we're attempting to call the function `[]` on an instance of nil. This happens when we have a nested attribute like `node[:myface][:user]`. Because we never initialized the `node[:myface]` attribute it will evaluate to nil by default. Asking for the attribute `:user` from `nil` results in the no method error that we see above. We can easily remedy this by initializing our attributes. You should __always initialize your attributes before using them__.
+Well, yes and no. This cryptic error message is a very common and people new to Ruby are often confused by it at first so let's break it down. Everything in Ruby is an object - even Nil. Ruby also allows the characters `[` and `]` in function definitions. We're attempting to send the message `[]` to an instance of nil because we are accessing the nested attribute `node[:myface][:user]` but we haven't set set a value for the attribute `node[:myface]` it by default evaluates to nil. Asking for the attribute `:user` from `nil` results in the no method error that we see above. We can easily remedy this by initializing attributes before we attempt to access them. You should __always initialize attributes before using them__.
 
 ## Initialize your attributes
+
+Attributes can be set and accessed from a [Node Object](http://wiki.opscode.com/display/chef/Recipes#Recipes-NodeObject) and also within attribute files.
+
+Create a new file that sets values for the missing attributes and save it as `myface/attributes/default.rb`. 
+
+    default[:myface][:user] = "myface"
+    default[:myface][:group] = "myface"
+
+The syntax for accessing an attribute in an attribute file is different than we've seen in recipes. You do not access them from a Node Object, instead you access them by precedence. In this case we are using the default precedence which, when set in an attribute file, has a precedence level of 1. Attribute precedence is commonly a source for bugs or confusion so it's a good idea to read up the full documentation on [Attribute Precedence](http://wiki.opscode.com/display/chef/Attributes#Attributes-AttributeTypeandPrecedence) before moving forward. Currently there are 11 precedence levels in total where 1 is lowest and 11 is highest.
+
+re-run Vagrant provision and our attributes should replace our hardcoded strings
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: *** Chef 10.12.0 ***
+    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Run List is [recipe[myface::default]]
+    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Run List expands to [myface::default]
+    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Starting Chef Run for localhost
+    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Running start handlers
+    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Start handlers complete.
+    [Tue, 24 Jul 2012 01:27:09 +0000] ERROR: Running exception handlers
+    [Tue, 24 Jul 2012 01:27:09 +0000] ERROR: Exception handlers complete
+    [Tue, 24 Jul 2012 01:27:09 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [Tue, 24 Jul 2012 01:27:09 +0000] FATAL: NoMethodError: undefined method `[]' for nil:NilClass
+
+Or at least it should have... There is currently a limitation with the way shims are implemented in Berkshelf. When a file is changed the changes are automatically picked up since we have already created the hard link. Unfortunately when a new file is added we hadn't created a hard link for it earlier on so we need to re-run berks install to get this file tracked inside Vagrant. I am currently working on a fix for this and will update this documentation when it has been implemented.
+
+    $ bundle exec berks install --shims
+    Using myface (0.0.1) at path: '/Users/reset/code/myface'
+    Using artifact (0.10.1)
+    Shims written to: '/Users/reset/code/myface/cookbooks'
+
+Now re-run the provisioner and everything will be K
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: *** Chef 10.12.0 ***
+    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Run List is [recipe[myface::default]]
+    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Run List expands to [myface::default]
+    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Starting Chef Run for localhost
+    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Running start handlers
+    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Start handlers complete.
+    [Tue, 24 Jul 2012 01:30:31 +0000] INFO: Processing group[myface] action create (myface::default line 10)
+    [Tue, 24 Jul 2012 01:30:31 +0000] INFO: Processing user[myface] action create (myface::default line 12)
+    [Tue, 24 Jul 2012 01:30:31 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 18)
+    [Tue, 24 Jul 2012 01:30:31 +0000] INFO: Chef Run complete in 0.09489162 seconds
+    [Tue, 24 Jul 2012 01:30:31 +0000] INFO: Running report handlers
+    [Tue, 24 Jul 2012 01:30:31 +0000] INFO: Report handlers complete
+
+Success! You'll notice that your Chef run went a lot faster than the first time we successfully ran and deployed our application. That is because we're using well defined resources which are completely [idempotent](http://en.wikipedia.org/wiki/Idempotence).
+
+# Idempotent recipes
+
+You should __always write idempotent recipes__ that execute cleanly on their very first run and perform no work if no work needs to be done.
 
 # Incrementing versions
 
