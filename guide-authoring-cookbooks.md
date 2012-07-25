@@ -125,9 +125,11 @@ Start up your virtual machine
     [default] -- 22 => 2222 (adapter 1)
     [default] Creating shared folders metadata...
     [default] Clearing any previously set network interfaces...
+    [default] Preparing network interfaces based on configuration...
     [default] Booting VM...
     [default] Waiting for VM to boot. This can take a few minutes.
     [default] VM booted and ready for use!
+    [default] Configuring and enabling network interfaces...
     [default] Mounting shared folders...
     [default] -- v-root: /vagrant
     [default] -- v-csc-1: /tmp/vagrant-chef-1/chef-solo-1/cookbooks
@@ -513,7 +515,193 @@ Success! You'll notice that your Chef run went a lot faster than the first time 
 
 # Idempotent recipes
 
-You should __always write idempotent recipes__ that execute cleanly on their very first run and perform no work if no work needs to be done.
+You should __always write idempotent recipes__ that execute cleanly on their very first run and perform no work if no work needs to be done. You can do this by using selecting the right resource for the job or creating your own by writing a Light-weight Resource Provider (LWRP). If you've been working with Chef and reading cookbooks authored by people new to Chef then you've probably seen something like this
+
+    bash "download-and-extract" do
+      code <<-EOH
+        cd /tmp
+        wget http://dl.dropbox.com/u/31081437/myface-1.0.0.tar.gz
+        mkdir -p /srv/myface/releases/1.0.0
+        tar xzvf myface-1.0.0.tar.gz -C /srv/myface/releases/1.0.0
+        rm -Rdf /tmp/myface-1.0.0.tar.gz
+      EOH
+    end
+
+This snippet of code is actually very similar to what we did with the artifact_deploy resource
+
+1. Downloads the artifact
+2. Creates the release directory
+3. Extracts the artifact into the release directory
+4. Cleans up after itself
+
+The problem is that this resource definition is not idempotent. This resource will be executed every time Chef is run regardless if version 1.0.0 of myface has been installed to /srv/myface/releases/1.0.0. This could be prevented with by using a [Conditional Execution](http://wiki.opscode.com/display/chef/Resources#Resources-ConditionalExecution) check
+
+    bash "download-and-extract" do
+      code <<-EOH
+        cd /tmp
+        wget http://dl.dropbox.com/u/31081437/myface-1.0.0.tar.gz
+        mkdir -p /srv/myface/releases/1.0.0
+        tar xzvf myface-1.0.0.tar.gz -C /srv/myface/releases/1.0.0
+        rm -Rdf /tmp/myface-1.0.0.tar.gz
+      EOH
+
+      not_if { File.exists?("/srv/myface/releases/1.0.0") }
+    end
+
+But as the logic gets more complex for deploying an artifact the conditional execution block gets grows in complexity, as well. 
+
+_A Chef recipe is not a collection of procedurally executing bash scripts_
+
+Always use the right resource for the job and avoid using the [Script resource](http://wiki.opscode.com/display/chef/Resources#Resources-Script) where possible. In this case, we can (and did) use the artifact deploy Light-weight Resource Provider (LWRP) to ensure our deployment steps are idempotent.
+
+# Configuring the application server
+
+Open up the `metadata.rb` file in our cookbook and add a depenency for Tomcat below the artifact dependency (note: order does not matter)
+
+    depends "tomcat", "~> 0.10.4"
+
+Now you should have a `metadata.rb` file that looks like this
+
+    name             "myface"
+    maintainer       "YOUR_NAME"
+    maintainer_email "YOUR_EMAIL"
+    license          "All rights reserved"
+    description      "Installs/Configures myface"
+    long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
+    version          "0.0.1"
+
+    depends "artifact", "~> 0.10.1"
+    depends "tomcat", "~> 0.10.4"
+
+Run the Berkshelf install command to get the Tomcat cookbook and all of it's dependent cookbooks. NOTE: Don't forget the `--shims` flag! This will ensure that the cookbooks are available to our virtual machine.
+
+    $ bundle exec berks install --shims
+    Using myface (0.0.1) at path: '/Users/reset/code/myface'
+    Using artifact (0.10.1)
+    Installing tomcat (0.10.4) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Installing java (1.5.2) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Shims written to: '/Users/reset/code/myface/cookbooks'
+
+Next we will tell our default recipe to install Tomcat and configure it before deploying our application. Open the default recipe `myface/recipes/default.rb` for editing and add an `include_recipe` call before the resource definitions and save your work. You should have
+
+    #
+    # Cookbook Name:: myface
+    # Recipe:: default
+    #
+    # Copyright (C) 2012 YOUR_NAME
+    # 
+    # All rights reserved - Do Not Redistribute
+    #
+
+    include_recipe "tomcat"
+
+    group node[:myface][:group]
+    ...
+
+Re-run the Vagrant provisioner to install to your virtual machine
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    [Tue, 24 Jul 2012 23:30:25 +0000] INFO: *** Chef 10.12.0 ***
+    [Tue, 24 Jul 2012 23:30:26 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [Tue, 24 Jul 2012 23:30:26 +0000] INFO: Run List is [recipe[myface::default]]
+    [Tue, 24 Jul 2012 23:30:26 +0000] INFO: Run List expands to [myface::default]
+    ...
+    [Tue, 24 Jul 2012 23:36:45 +0000] INFO: Processing service[tomcat] action restart (tomcat::default line 37)
+    [Tue, 24 Jul 2012 23:26:45 +0000] INFO: service[tomcat] restarted
+    [Tue, 24 Jul 2012 23:26:45 +0000] INFO: Chef Run complete in 380.647822346 seconds
+    [Tue, 24 Jul 2012 23:26:45 +0000] INFO: Running report handlers
+    [Tue, 24 Jul 2012 23:26:45 +0000] INFO: Report handlers complete
+
+After a little bit of time Tomcat and all of it's requirements, including Java 1.6, will be installed and configured within your virtual machine.
+
+Writing idempotent recipes is so important that we should give our Vagrant provisioner another run just to make sure that no work is being performed after we've already done it
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    [Wed, 25 Jul 2012 00:49:05 +0000] INFO: *** Chef 10.12.0 ***
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Run List is [recipe[myface::default]]
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Run List expands to [myface::default]
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Starting Chef Run for localhost
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Running start handlers
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Start handlers complete.
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Processing ruby_block[set-env-java-home] action create (java::openjdk line 36)
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: ruby_block[set-env-java-home] called
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Processing ruby_block[update-java-alternatives] action nothing (java::openjdk line 43)
+    [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Processing package[java-1.6.0-openjdk] action install (java::openjdk line 80)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing package[java-1.6.0-openjdk-devel] action install (java::openjdk line 80)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing package[sun-java6-jdk] action purge (java::default line 25)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing package[sun-java6-bin] action purge (java::default line 25)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing package[sun-java6-jre] action purge (java::default line 25)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing package[tomcat6] action install (tomcat::default line 32)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing package[tomcat6-admin-webapps] action install (tomcat::default line 32)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing service[tomcat] action enable (tomcat::default line 37)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing service[tomcat] action start (tomcat::default line 37)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing template[/etc/sysconfig/tomcat6] action create (tomcat::default line 50)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing template[/etc/tomcat6/server.xml] action create (tomcat::default line 67)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing group[myface] action create (myface::default line 12)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing user[myface] action create (myface::default line 14)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 20)
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Chef Run complete in 1.574612849 seconds
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Running report handlers
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Report handlers complete
+
+Each successive Chef run is now taking 1.5 seconds to inspect the node to ensure that no work needs to be performed. You might be wondering why Chef is doing so much "Processing" if no work is getting done. Chef output is verbose and may be hard to grok for new a user so let's quickly dissect one of the INFO logs to better understand.
+
+    [Wed, 25 Jul 2012 00:49:07 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 20)
+
+* `[Wed, 25 Jul 2012 00:49:07 +0000]` this is the time the log resource was "processed" or "inspected" at
+* `INFO` this is the log level of the log. INFO is good. WARN maybe an issue. FATAL and ERROR are bad.
+* `Processing artifact_deploy[myface]` we are processing the a resource called "myface" of type artifact_deploy. You can think of processing as inspecting for change.
+* `action deploy` the action `:deploy` is being considered for execution. If the resource is not in a state which would match that if we had performed the action of `:deploy` than the action would execute and the resource would change state.
+* `(myface::default line 20)` this is where the resource is defined. In this case the resource is defined in the cookbook "myface" in the "default" recipe at line 20.
+
+You might have noticed instead of creating a role and populating the run_list with "tomcat" and "myface" we actually used `include_recipe` to magically build and properly order our run_list. You've probably been told to use a role to describe what your application servers look like. You've seriously been mislead.
+
+## Including versus Roles and Run Lists
+
+The great thing about Chef is that it provides you with a collection of primitives to accomplish any configuration task. But like Uncle Ben told Peter Parker, "With great power comes great responsibility". As a cookbook author you are able to combine these primitives in various ways to accomplish the same task. In Chef there is no wrong way to do something, only better ways.
+
+In the previous section we used `include_recipe` to install Tomcat prior to deploying our application. We could have achieved this by creating a role that builds a run_list with these recipes
+
+    name "myface_appserver"
+    description "Configures a node to be a Myface application server"
+    run_list(
+      "recipe[tomcat]",
+      "recipe[myface]"
+    )
+
+This would accomplish the same task of configuring a node with Tomcat and deploying Myface to it, right? Except a role is not packaged with a cookbook. You could easily update your README and include a strongly worded note instructing the operator of your cookbook to create a role and place it into their Chef Repository, but why make them go through the trouble?
+
+What if the operator already has a role named "myface_appserver" or more likely we named the role "appserver" and the operator had one of those already. Well you could just tell the operator to name it whatever he wants until you have logic in your recipe that requires the role to be named what you expect. Take this search for example where we dynamically find all of our application servers
+
+    search(:node, 'role:myface_appserver')
+
+This would cause our recipe to entirely break and should be avoided. A role is domain logic used by operators to configure nodes to their liking and should not be used by cookbook authors to configure the dependencies of their cookbooks.
+
+You could also suggest to a user to include the Tomcat recipe in their nodes run_list along with the "myface" recipe. What if the operator was to put the "myface" recipe first before "tomcat"? Take for example this node JSON
+
+    {
+      "name": "proving-ground",
+      "chef_environment": "reset-development",
+      "run_list": [
+        "recipe[myface]",
+        "recipe[tomcat]"
+      ]
+    }
+
+Well... nothing actually. The order of execution doesn't matter for Myface just yet. Tomcat can be installed at any point and things will be just fine. In the next section we will wire up our application into Tomcat and this will change. After every deployment Tomcat will restart to pick up newly deployed artifacts of Myface. This will seemingly work fine since we've been building our virtual machine up as we go. However, if we were to destroy and rebuild our virtual machine we would get a FATAL error telling us that the Tomcat service could not be restarted. This is because Tomcat wouldn't have been installed to the system yet.
+
+Cookbooks should have entry points exposed to operators and these entry points should be well documented. The default recipe is a good place to start and should be your default entry point. These entry points need to be self sufficient and responsible for doing the job they advertise and nothing more. It is unacceptable to require an operator to build a role or manually construct a run_list for their nodes.
+
+# A bit more refactoring
+
+Refactor version and artifact_url
 
 # Incrementing versions
 
