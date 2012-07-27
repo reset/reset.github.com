@@ -663,7 +663,7 @@ Each successive Chef run is now taking 1.5 seconds to inspect the node to ensure
 
 You might have noticed instead of creating a role and populating the run_list with "tomcat" and "myface" we actually used `include_recipe` to magically build and properly order our run_list. You've probably been told to use a role to describe what your application servers look like. You've seriously been mislead.
 
-## Including versus Roles and Run Lists
+## include_recipe versus a Role with a run_list
 
 The great thing about Chef is that it provides you with a collection of primitives to accomplish any configuration task. But like Uncle Ben told Peter Parker, "With great power comes great responsibility". As a cookbook author you are able to combine these primitives in various ways to accomplish the same task. In Chef there is no wrong way to do something, only better ways.
 
@@ -879,7 +879,6 @@ Now reload your virtual machine to have it pick up the changes
     [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing group[myface] action create (myface::default line 13)
     [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing user[myface] action create (myface::default line 15)
     [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 21)
-    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing link[/usr/share/tomcat6/webapps/HelloWebApp.war] action create (myface::default line 30)
     [Fri, 27 Jul 2012 21:15:36 +0000] INFO: template[/etc/tomcat6/tomcat-users.xml] sending restart action to service[tomcat] (delayed)
     [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing service[tomcat] action restart (tomcat::default line 37)
     [Fri, 27 Jul 2012 21:15:38 +0000] INFO: service[tomcat] restarted
@@ -902,13 +901,155 @@ And if we check the `tomcat-users.xml` file it should have the entries for the u
     <tomcat-users>
     <role rolename="manager" />
     <user username="tomcat" password="tomcat" roles="manager" />
-    </tomcat-users>    
+    </tomcat-users>
 
-Tomcat was also notified to restart when the `tomcat-users.xml` was changed so now when we go to the [Tomcat manager](http://localhost:8080/manager/html/) and enter our user "tomcat" with the password "tomcat" we should be granted access. Success!
+Tomcat was also notified to restart when the `tomcat-users.xml` was changed so now when we go to the [Tomcat manager](http://localhost:8080/manager/html/) and enter our user "tomcat" with the password "tomcat" we should be granted access and see two running applications for the Tomcat Manager Application. Success!
+
+# Hooking the application into Tomcat
+
+With Tomcat running and access to the Tomcat Manager we can now hook our application into Tomcat. This is going to be pretty easy since we've already got our application deployed to the virtual machine and Tomcat is installed and running. All we have to do is tell our recipe to link our application into the webapps directory of Tomcat.
+
+Open the default recipe `myface/recipes/default.rb` and add a [link resource](http://wiki.opscode.com/display/chef/Resources#Resources-Link) below the artifact_deploy
+
+    ...
+    artifact_deploy "myface" do
+      version "1.0.0"
+      artifact_location "http://dl.dropbox.com/u/31081437/myface-1.0.0.tar.gz"
+      deploy_to "/srv/myface"
+      owner node[:myface][:user]
+      group node[:myface][:group]
+      action :deploy
+    end
+
+    link "#{node[:tomcat][:home]}/webapps/HelloWebApp.war" do
+      to "/srv/myface/current/HelloWebApp.war"
+    end
+
+__note: In the name attribute of the link resource you'll notice that we actually used an attribute to build part of it. The attribute used was `node[:tomcat][:home]`. If you check the Tomcat documentation you'll see that attribute evaluates to the path on disk for Tomcat's home which contains the webapp directory that we wanted to link our application into. This is a shining example of the power of attributes.__
+
+Tomcat will automatically pick up our application and load it after the symlink is written. Let's re-provision our node and check the Tomcat Manager to make sure it all worked
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Fri, 27 Jul 2012 21:41:39 +0000] INFO: link[/usr/share/tomcat6/webapps/HelloWebApp.war] created
+    [Fri, 27 Jul 2012 21:41:39 +0000] INFO: Chef Run complete in 1.662062569 seconds
+    [Fri, 27 Jul 2012 21:41:39 +0000] INFO: Running report handlers
+    [Fri, 27 Jul 2012 21:41:39 +0000] INFO: Report handlers complete
+
+And now when we visit the [Tomcat Manager](http://localhost:8080/manager/html) there should be three applications in the applications list. The new application should be mounted at path /HelloWebApp.
+
+We can now visit our new (and unimpressive) application [in our browser](http://localhost:8080/HelloWebApp/hello.jsp)    
 
 # A bit more refactoring
 
-Refactor version and artifact_url
+Some duplication crept into Myface's default recipe while we were working on things. Did you notice it?
+
+If you look back at the 'Refactoring into attributes' section you'll recall that when we have common values that are being passed to multiple resources it is a good case to refactor those into attributes. In this case we've been repeating ourself a bit on where our application code should be deployed to. Let's create a new attribute called `myface[:deploy_to]` and put it in our default attributes file.
+
+Open the default attributes file for editing `myface/attributes/default.rb` and add a default attribute for deploy_to
+
+    #
+    # Cookbook Name:: myface
+    # Attribute:: default
+    #
+    # Copyright (C) 2012 Jamie Winsor
+    # 
+    # All rights reserved - Do Not Redistribute
+    #
+
+    default[:myface][:user] = "myface"
+    default[:myface][:group] = "myface"
+    default[:myface][:deploy_to] = "/srv/myface"
+
+Now in our default recipe replace the references to the deploy to location with this attribute
+
+    ...
+    artifact_deploy "myface" do
+      version "1.0.0"
+      artifact_location "http://dl.dropbox.com/u/31081437/myface-1.0.0.tar.gz"
+      deploy_to node[:myface][:deploy_to]
+      owner node[:myface][:user]
+      group node[:myface][:group]
+      action :deploy
+    end
+
+    link "#{node[:tomcat][:home]}/webapps/HelloWebApp.war" do
+      to "#{node[:myface][:deploy_to]}/current/HelloWebApp.war"
+    end
+
+Now let's run the Vagrant provisioner and ensure nothing was changed (It shouldn't have changed since we're writing idempotent recipes, right?).
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Fri, 27 Jul 2012 21:59:59 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 21)
+    [Fri, 27 Jul 2012 21:59:59 +0000] INFO: Processing link[/usr/share/tomcat6/webapps/HelloWebApp.war] action create (myface::default line 30)
+
+It's good to review the entire output of Vagrant to ensure no additional work was done, but since we only changed the artifact_deploy and link resource, they are the important bits to check on here. You should only see a Processing log for each resource with no actions taken.
+
+## Configurable artifact version and URL
+
+Since we're already in the spirit of refactoring let's hit the last remaining problem. What if the location of our artifact was to change or we wanted to deploy a different version? Well right now you'd need to make a change to your cookbook. While this doesn't sound like much it is actually a big problem - you'd need to increment the version of your cookbook and re-publish it to the community site or your Chef Server. 
+
+You wouldn't hardcode the location of your database into your application code, would you?
+
+This brings up the topic of _Configurable Attributes_ (sometimes referred to as Tunable Attributes or Tunables). Attributes can be overridden on multiple levels to allow an operator to change the behavior of your cookbook without actually making any code changes.
+
+Let's make a configurable attribute for the artifact URL and the artifact version. We will document these in the README to explain to an operator how they can deploy different versions of our application or from different locations without making any cookbook changes.
+
+Start by creating two new default attributes in the default attributes file (`myface/attributes/default.rb`)
+
+    #
+    # Cookbook Name:: myface
+    # Attribute:: default
+    #
+    # Copyright (C) 2012 Jamie Winsor
+    # 
+    # All rights reserved - Do Not Redistribute
+    #
+
+    ...
+    default[:myface][:artifact_url] = "http://dl.dropbox.com/u/31081437/myface-1.0.0.tar.gz"
+    default[:myface][:artifact_version] = "1.0.0"
+
+And just like we did for the deploy_to attribute, replace the values in the default recipe with these new attributes
+
+    #
+    # Cookbook Name:: myface
+    # Recipe:: default
+    #
+    # Copyright (C) 2012 YOUR_NAME
+    # 
+    # All rights reserved - Do Not Redistribute
+    #
+
+    ...
+    artifact_deploy "myface" do
+      version node[:myface][:artifact_version]
+      artifact_location node[:myface][:artifact_url]
+      deploy_to node[:myface][:deploy_to]
+      owner node[:myface][:user]
+      group node[:myface][:group]
+      action :deploy
+    end
+
+And if we run our Vagrant provisioner we should see no changes
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 21)
+    ...
+    [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Chef Run complete in 1.610049321 seconds
+    [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Running report handlers
+    [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Report handlers complete
 
 # Incrementing versions
 
