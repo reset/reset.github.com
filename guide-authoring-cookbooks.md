@@ -925,7 +925,7 @@ Open the default recipe `myface/recipes/default.rb` and add a [link resource](ht
       to "/srv/myface/current/HelloWebApp.war"
     end
 
-__note: In the name attribute of the link resource you'll notice that we actually used an attribute to build part of it. The attribute used was `node[:tomcat][:home]`. If you check the Tomcat documentation you'll see that attribute evaluates to the path on disk for Tomcat's home which contains the webapp directory that we wanted to link our application into. This is a shining example of the power of attributes.__
+_note: In the name attribute of the link resource you'll notice that we actually used an attribute to build part of it. The attribute used was `node[:tomcat][:home]`. If you check the Tomcat documentation you'll see that attribute evaluates to the path on disk for Tomcat's home which contains the webapp directory that we wanted to link our application into. This is a shining example of the power of attributes._
 
 Tomcat will automatically pick up our application and load it after the symlink is written. Let's re-provision our node and check the Tomcat Manager to make sure it all worked
 
