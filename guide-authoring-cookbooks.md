@@ -770,7 +770,7 @@ This directory will hold the data bag items representing our Tomcat users. Let's
 
     $ touch data_bags/tomcat_users/tomcat.json
 
-Open this file in your favorite editor and add the JSON for the user
+Open this file in your favorite editor and add the following JSON for the new user
 
     {
       "id": "tomcat",
@@ -779,6 +779,132 @@ Open this file in your favorite editor and add the JSON for the user
         "manager"
       ]
     }
+
+Now that we have our data bag and data bag item created we need to tell Chef to create the Tomcat users. This is done by including the `tomcat::users` recipe into your recipe. Earlier we told Chef to install Tomcat by including the default Tomcat recipe in Myface's default recipe.
+
+Open the default recipe for editing at `myface/recipes/default.rb` and include the `tomcat::users` recipe
+
+    #
+    # Cookbook Name:: myface
+    # Recipe:: default
+    #
+    # Copyright (C) 2012 YOUR_NAME
+    # 
+    # All rights reserved - Do Not Redistribute
+    #
+
+    include_recipe "tomcat"
+    include_recipe "tomcat::users"
+    ...
+
+Now re-provision with Vagrant
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    [Fri, 27 Jul 2012 21:11:28 +0000] INFO: *** Chef 10.12.0 ***
+    [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Run List is [recipe[myface::default]]
+    [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Run List expands to [myface::default]
+    [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Starting Chef Run for myface-cookbook-development
+    [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Running start handlers
+    [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Start handlers complete.
+    [Fri, 27 Jul 2012 21:11:29 +0000] ERROR: Running exception handlers
+    [Fri, 27 Jul 2012 21:11:29 +0000] ERROR: Exception handlers complete
+    [Fri, 27 Jul 2012 21:11:29 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [Fri, 27 Jul 2012 21:11:29 +0000] FATAL: Chef::Exceptions::InvalidDataBagPath: Data bag path '/var/chef/data_bags' is invalid
+    Chef never successfully completed! Any errors should be visible in the
+    output above. Please fix your recipes so that they properly complete.
+
+Oops! This cryptic error message is telling us that we don't have a valid data bag path in our virtual machine at '/var/chef/data_bags'. This is because a bit earlier we created our data bag and data bag items on our host machine but never told our virtual machine about them. We can solve this problem by telling Vagrant where to find our data bags.
+
+Open the cookbook's Vagrantfile and tell it where to find the data bags
+
+  config.vm.provision :chef_solo do |chef|
+    chef.cookbooks_path = ["cookbooks"]
+    chef.data_bags_path = "data_bags"
+
+    ...
+  end
+
+Now reload your virtual machine to have it pick up the changes
+
+    $ bundle exec vagrant reload
+    [default] Attempting graceful shutdown of VM...
+    [default] Clearing any previously set forwarded ports...
+    [default] Forwarding ports...
+    [default] -- 22 => 2222 (adapter 1)
+    [default] -- 8080 => 8080 (adapter 1)
+    [default] Creating shared folders metadata...
+    [default] Clearing any previously set network interfaces...
+    [default] Preparing network interfaces based on configuration...
+    [default] Booting VM...
+    [default] Waiting for VM to boot. This can take a few minutes.
+    [default] VM booted and ready for use!
+    [default] Configuring and enabling network interfaces...
+    [default] Setting host name...
+    [default] Mounting shared folders...
+    [default] -- v-root: /vagrant
+    [default] -- v-csc-1: /tmp/vagrant-chef-1/chef-solo-1/cookbooks
+    [default] -- v-csdb-2: /tmp/vagrant-chef-1/chef-solo-2/data_bags
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: *** Chef 10.12.0 ***
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Run List is [recipe[myface::default]]
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Run List expands to [myface::default]
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Starting Chef Run for myface-cookbook-development
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Running start handlers
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Start handlers complete.
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Processing ruby_block[set-env-java-home] action create (java::openjdk line 36)
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: ruby_block[set-env-java-home] called
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Processing ruby_block[update-java-alternatives] action nothing (java::openjdk line 43)
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Processing package[java-1.6.0-openjdk] action install (java::openjdk line 80)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing package[java-1.6.0-openjdk-devel] action install (java::openjdk line 80)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing package[sun-java6-jdk] action purge (java::default line 25)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing package[sun-java6-bin] action purge (java::default line 25)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing package[sun-java6-jre] action purge (java::default line 25)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing package[tomcat6] action install (tomcat::default line 32)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing package[tomcat6-admin-webapps] action install (tomcat::default line 32)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing service[tomcat] action enable (tomcat::default line 37)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing service[tomcat] action start (tomcat::default line 37)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing template[/etc/sysconfig/tomcat6] action create (tomcat::default line 50)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing template[/etc/tomcat6/server.xml] action create (tomcat::default line 67)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing template[/etc/tomcat6/tomcat-users.xml] action create (tomcat::users line 22)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: template[/etc/tomcat6/tomcat-users.xml] backed up to /var/chef/backup/etc/tomcat6/tomcat-users.xml.chef-20120727211536
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: template[/etc/tomcat6/tomcat-users.xml] mode changed to 644
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: template[/etc/tomcat6/tomcat-users.xml] updated content
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing group[myface] action create (myface::default line 13)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing user[myface] action create (myface::default line 15)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 21)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing link[/usr/share/tomcat6/webapps/HelloWebApp.war] action create (myface::default line 30)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: template[/etc/tomcat6/tomcat-users.xml] sending restart action to service[tomcat] (delayed)
+    [Fri, 27 Jul 2012 21:15:36 +0000] INFO: Processing service[tomcat] action restart (tomcat::default line 37)
+    [Fri, 27 Jul 2012 21:15:38 +0000] INFO: service[tomcat] restarted
+    [Fri, 27 Jul 2012 21:15:38 +0000] INFO: Chef Run complete in 5.159478213 seconds
+    [Fri, 27 Jul 2012 21:15:38 +0000] INFO: Running report handlers
+    [Fri, 27 Jul 2012 21:15:38 +0000] INFO: Report handlers complete
+
+If you inspect the output from Vagrant you'll see that the data bags path that you specified is now mounted within the virtual machine
+
+    ...
+    [default] Mounting shared folders...
+    [default] -- v-root: /vagrant
+    [default] -- v-csc-1: /tmp/vagrant-chef-1/chef-solo-1/cookbooks
+    [default] -- v-csdb-2: /tmp/vagrant-chef-1/chef-solo-2/data_bags
+    ...
+
+And if we check the `tomcat-users.xml` file it should have the entries for the user and role we wanted
+
+    $ bundle exec vagrant ssh -c "cat /etc/tomcat6/tomcat-users.xml"
+    <tomcat-users>
+    <role rolename="manager" />
+    <user username="tomcat" password="tomcat" roles="manager" />
+    </tomcat-users>    
+
+Tomcat was also notified to restart when the `tomcat-users.xml` was changed so now when we go to the [Tomcat manager](http://localhost:8080/manager/html/) and enter our user "tomcat" with the password "tomcat" we should be granted access. Success!
 
 # A bit more refactoring
 
