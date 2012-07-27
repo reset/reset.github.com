@@ -699,6 +699,87 @@ Well... nothing actually. The order of execution doesn't matter for Myface just 
 
 Cookbooks should have entry points exposed to operators and these entry points should be well documented. The default recipe is a good place to start and should be your default entry point. These entry points need to be self sufficient and responsible for doing the job they advertise and nothing more. It is unacceptable to require an operator to build a role or manually construct a run_list for their nodes.
 
+# Wiring up Tomcat
+
+Since we're developing a web app and running it in Tomcat we're going to need to know the address to put into our browser to check out Myface. Tomcat doesn't typically run on port 80 so we're going to need to figure out what port Tomcat is running on. It's a good practice to make port or memory settings for your applications into tunable attributes, and lucky for us, the fine folks over at Opscode who developed this Tomcat cookbook follow such best practices.
+
+If we check the [Tomcat cookbook's documentation](https://github.com/opscode-cookbooks/tomcat/blob/master/README.md) we see that there is an _Attributes_ section that lists some of the important attributes and what they do. This information is also readily available by reading the [attributes file](https://github.com/opscode-cookbooks/tomcat/blob/master/attributes/default.rb) of the Tomcat cookbook. By reading the documentation we see that Tomcat will be configured to run on port `8080` by default.
+
+Now we need to know what ipaddress or hostname to put into our browser to go along with that port. Since Tomcat is running within a virtual machine we need a way to address the VM on port 8080. This can be achieved by setting up port forwarding in Vagrant.
+
+## Forwarding ports to Vagrant
+
+To access Tomcat on port `8080` we'll need to open our Vagrantfile for editing and add a forwarded port option for the virtual machine
+
+    Vagrant::Config.run do |config|
+      ...
+
+      # Forward a port from the guest to the host, which allows for outside
+      # computers to access the VM, whereas host only networking does not.
+      config.vm.forward_port 8080, 8080
+
+      ...
+      end
+    end
+
+And then we need to reload our virtual machine. note: A provision will not suffice, the virtual machine must be stopped and started or reloaded.
+
+    $ bundle exec vagrant reload
+    [default] Attempting graceful shutdown of VM...
+    [default] Clearing any previously set forwarded ports...
+    [default] Forwarding ports...
+    [default] -- 22 => 2222 (adapter 1)
+    [default] -- 8080 => 8080 (adapter 1)
+    [default] Creating shared folders metadata...
+    [default] Clearing any previously set network interfaces...
+    [default] Preparing network interfaces based on configuration...
+    [default] Booting VM...
+    [default] Waiting for VM to boot. This can take a few minutes.
+    [default] VM booted and ready for use!
+    [default] Configuring and enabling network interfaces...
+    [default] Mounting shared folders...
+    [default] -- v-root: /vagrant
+    [default] -- v-csc-1: /tmp/vagrant-chef-1/chef-solo-1/cookbooks
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Thu, 26 Jul 2012 02:03:28 +0000] INFO: Chef Run complete in 2.449577932 seconds
+    [Thu, 26 Jul 2012 02:03:28 +0000] INFO: Running report handlers
+    [Thu, 26 Jul 2012 02:03:28 +0000] INFO: Report handlers complete
+
+If you check the output from Vagrant you'll see the forwarding ports section now has an entry for 8080 on your local machine to 8080 on the guest machine.
+
+    [default] Forwarding ports...
+    [default] -- 22 => 2222 (adapter 1)
+    [default] -- 8080 => 8080 (adapter 1)
+
+Now you should be able to access the [Tomcat manager](http://localhost:8080/manager/html/) but you'll be greeted with an authorization box instead of some Tomcat managing goodness. In the next section we'll cover creating a Tomcat user and role to access the Tomcat manager using the users recipe provided by the Tomcat cookbook.
+
+__note: If you are not using the virtual box provided by this tutorial you may have iptables, selinux, or another software firewall running that may block connections coming into your virtual machine.__
+
+## Configuring Tomcat users
+
+In order to access the Tomcat manager you'll need to configure a user with the "manager" role. The Tomcat cookbook provides the `tomcat::users` recipe and some documentation on how to manage Tomcat's users and roles. If using Chef Solo the `tomcat::users` recipe requires you to create a data bag called `tomcat_users` and populate it with data bag items for each user you wish to create. If using Chef Client with Chef Server you'll need to go an additional step and make sure that all of the data bag items are encrypted.
+
+Since we're using Chef Solo let's start by creating the `tomcat_users` data bag. This is accomplished by creating a directory of the same name within a `data_bags` directory within our cookbook
+
+    $ mkdir -p data_bags/tomcat_users
+
+This directory will hold the data bag items representing our Tomcat users. Let's create a data bag item for the user "tomcat"
+
+    $ touch data_bags/tomcat_users/tomcat.json
+
+Open this file in your favorite editor and add the JSON for the user
+
+    {
+      "id": "tomcat",
+      "password": "secret",
+      "roles": [
+        "manager"
+      ]
+    }
+
 # A bit more refactoring
 
 Refactor version and artifact_url
@@ -708,3 +789,5 @@ Refactor version and artifact_url
 # Running lint tests
 
     $ bundle exec thor foodcritic:lint
+
+# Building your VM with Chef Client instead of Chef Solo
