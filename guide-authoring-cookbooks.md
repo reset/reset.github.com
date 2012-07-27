@@ -174,7 +174,7 @@ Open the default recipe for editing at `myface/recipes/default.rb` and add follo
 
     artifact_deploy "myface" do
       version "1.0.0"
-      artifact_location "http://dl.dropbox.com/u/31081437/HelloWebApp.war"
+      artifact_location "http://dl.dropbox.com/u/31081437/myface.war"
       deploy_to "/srv/myface"
       owner "myface"
       group "myface"
@@ -716,7 +716,7 @@ To access Tomcat on port `8080` we'll need to open our Vagrantfile for editing a
 
       # Forward a port from the guest to the host, which allows for outside
       # computers to access the VM, whereas host only networking does not.
-      config.vm.forward_port 8080, 8080
+      config.vm.forward_port 8080, 9090
 
       ...
       end
@@ -729,7 +729,7 @@ And then we need to reload our virtual machine. note: A provision will not suffi
     [default] Clearing any previously set forwarded ports...
     [default] Forwarding ports...
     [default] -- 22 => 2222 (adapter 1)
-    [default] -- 8080 => 8080 (adapter 1)
+    [default] -- 8080 => 9090 (adapter 1)
     [default] Creating shared folders metadata...
     [default] Clearing any previously set network interfaces...
     [default] Preparing network interfaces based on configuration...
@@ -748,15 +748,17 @@ And then we need to reload our virtual machine. note: A provision will not suffi
     [Thu, 26 Jul 2012 02:03:28 +0000] INFO: Running report handlers
     [Thu, 26 Jul 2012 02:03:28 +0000] INFO: Report handlers complete
 
-If you check the output from Vagrant you'll see the forwarding ports section now has an entry for 8080 on your local machine to 8080 on the guest machine.
+If you check the output from Vagrant you'll see the forwarding ports section now has an entry for 9090 on your local machine to 8080 on the guest machine.
 
     [default] Forwarding ports...
     [default] -- 22 => 2222 (adapter 1)
-    [default] -- 8080 => 8080 (adapter 1)
+    [default] -- 8080 => 9090 (adapter 1)
 
-Now you should be able to access the [Tomcat manager](http://localhost:8080/manager/html/) but you'll be greeted with an authorization box instead of some Tomcat managing goodness. In the next section we'll cover creating a Tomcat user and role to access the Tomcat manager using the users recipe provided by the Tomcat cookbook.
+Now you should be able to access the [Tomcat manager](http://localhost:9090/manager/html/) but you'll be greeted with an authorization box instead of some Tomcat managing goodness. In the next section we'll cover creating a Tomcat user and role to access the Tomcat manager using the users recipe provided by the Tomcat cookbook.
 
-__note: If you are not using the virtual box provided by this tutorial you may have iptables, selinux, or another software firewall running that may block connections coming into your virtual machine.__
+_note: You could forward 8080 on your host machine to 8080 on the virtual machine but there is a good chance if you're a Java developer that you are starting up Tomcats on 8080 already on your host machine._
+
+_note: If you are not using the virtual box provided by this tutorial you may have iptables, selinux, or another software firewall running that may block connections coming into your virtual machine._
 
 ## Configuring Tomcat users
 
@@ -835,7 +837,7 @@ Now reload your virtual machine to have it pick up the changes
     [default] Clearing any previously set forwarded ports...
     [default] Forwarding ports...
     [default] -- 22 => 2222 (adapter 1)
-    [default] -- 8080 => 8080 (adapter 1)
+    [default] -- 8080 => 9090 (adapter 1)
     [default] Creating shared folders metadata...
     [default] Clearing any previously set network interfaces...
     [default] Preparing network interfaces based on configuration...
@@ -903,7 +905,7 @@ And if we check the `tomcat-users.xml` file it should have the entries for the u
     <user username="tomcat" password="tomcat" roles="manager" />
     </tomcat-users>
 
-Tomcat was also notified to restart when the `tomcat-users.xml` was changed so now when we go to the [Tomcat manager](http://localhost:8080/manager/html/) and enter our user "tomcat" with the password "tomcat" we should be granted access and see two running applications for the Tomcat Manager Application. Success!
+Tomcat was also notified to restart when the `tomcat-users.xml` was changed so now when we go to the [Tomcat manager](http://localhost:9090/manager/html/) and enter our user "tomcat" with the password "tomcat" we should be granted access and see two running applications for the Tomcat Manager Application. Success!
 
 # Hooking the application into Tomcat
 
@@ -921,8 +923,8 @@ Open the default recipe `myface/recipes/default.rb` and add a [link resource](ht
       action :deploy
     end
 
-    link "#{node[:tomcat][:home]}/webapps/HelloWebApp.war" do
-      to "/srv/myface/current/HelloWebApp.war"
+    link "#{node[:tomcat][:home]}/webapps/myface.war" do
+      to "/srv/myface/current/myface.war"
     end
 
 _note: In the name attribute of the link resource you'll notice that we actually used an attribute to build part of it. The attribute used was `node[:tomcat][:home]`. If you check the Tomcat documentation you'll see that attribute evaluates to the path on disk for Tomcat's home which contains the webapp directory that we wanted to link our application into. This is a shining example of the power of attributes._
@@ -934,14 +936,14 @@ Tomcat will automatically pick up our application and load it after the symlink 
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
     ...
-    [Fri, 27 Jul 2012 21:41:39 +0000] INFO: link[/usr/share/tomcat6/webapps/HelloWebApp.war] created
+    [Fri, 27 Jul 2012 21:41:39 +0000] INFO: link[/usr/share/tomcat6/webapps/myface.war] created
     [Fri, 27 Jul 2012 21:41:39 +0000] INFO: Chef Run complete in 1.662062569 seconds
     [Fri, 27 Jul 2012 21:41:39 +0000] INFO: Running report handlers
     [Fri, 27 Jul 2012 21:41:39 +0000] INFO: Report handlers complete
 
-And now when we visit the [Tomcat Manager](http://localhost:8080/manager/html) there should be three applications in the applications list. The new application should be mounted at path /HelloWebApp.
+And now when we visit the [Tomcat Manager](http://localhost:9090/manager/html) there should be three applications in the applications list. The new application should be mounted at path /myface.
 
-We can now visit our new (and unimpressive) application [in our browser](http://localhost:8080/HelloWebApp/hello.jsp)    
+We can now visit our new (and unimpressive) application [in our browser](http://localhost:9090/myface)    
 
 # A bit more refactoring
 
@@ -976,8 +978,8 @@ Now in our default recipe replace the references to the deploy to location with 
       action :deploy
     end
 
-    link "#{node[:tomcat][:home]}/webapps/HelloWebApp.war" do
-      to "#{node[:myface][:deploy_to]}/current/HelloWebApp.war"
+    link "#{node[:tomcat][:home]}/webapps/myface.war" do
+      to "#{node[:myface][:deploy_to]}/current/myface.war"
     end
 
 Now let's run the Vagrant provisioner and ensure nothing was changed (It shouldn't have changed since we're writing idempotent recipes, right?).
@@ -988,7 +990,7 @@ Now let's run the Vagrant provisioner and ensure nothing was changed (It shouldn
     [default] Running chef-solo...
     ...
     [Fri, 27 Jul 2012 21:59:59 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 21)
-    [Fri, 27 Jul 2012 21:59:59 +0000] INFO: Processing link[/usr/share/tomcat6/webapps/HelloWebApp.war] action create (myface::default line 30)
+    [Fri, 27 Jul 2012 21:59:59 +0000] INFO: Processing link[/usr/share/tomcat6/webapps/myface.war] action create (myface::default line 30)
 
 It's good to review the entire output of Vagrant to ensure no additional work was done, but since we only changed the artifact_deploy and link resource, they are the important bits to check on here. You should only see a Processing log for each resource with no actions taken.
 
@@ -1050,6 +1052,8 @@ And if we run our Vagrant provisioner we should see no changes
     [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Chef Run complete in 1.610049321 seconds
     [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Running report handlers
     [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Report handlers complete
+
+# Wiring up the database
 
 # Incrementing versions
 
