@@ -1053,7 +1053,170 @@ And if we run our Vagrant provisioner we should see no changes
     [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Running report handlers
     [Fri, 27 Jul 2012 22:23:19 +0000] INFO: Report handlers complete
 
-# Wiring up the database
+# Configuring the database server
+
+Version 1.0.0 of Myface is just a web application that is serving up a static page - it doesn't do much. Well version 2.0.0 of Myface is ready and it requires a presistant database to hold account information and the hordes of cats that your users are going to be posting. We're going to cover installing and configuring MySQL in this section but the steps are similar enough if your application requires another persistant datastore like PostgreSQL.
+
+## Creating the database recipe
+
+We're going to create a new recipe and call it 'database'. It's a solid best practice to separate your applications components into their own recipes for a few reasons.
+
+* It's easier to develop and test components when they are separate. This is a good time to bring up the [Single Responsibility Principle (SRP)](http://en.wikipedia.org/wiki/Single_responsibility_principle). Each recipe should do the job of installing or configuring a single component - nothing more, nothing less.
+* Enables you to distribute components across different nodes without including unnecessary components.
+
+Start out by creating a new recipe called 'database'
+
+    $ touch recipes/database.rb
+
+Since we're going to be using MySQL let's include MySQL's server recipe.
+
+_note: Due to a severe bug in the Opscode MySQL cookbook we will be using Riot Game's fork_
+
+    #
+    # Cookbook Name:: myface
+    # Recipe:: database
+    #
+    # Copyright (C) 2012 YOUR_NAME
+    # 
+    # All rights reserved - Do Not Redistribute
+    #
+
+    include_recipe "riot_mysql::server"
+
+To test our work out we'll want to add this new recipe to the `run_list` of our virtual machine. This is done by editing the Vagrantfile and adding the `myface::database` recipe to the array of recipes in the run_list. You should place the database as the first recipe in the run_list since it's common for the application server to require a database to connect to before it would successfully start.
+
+Open the Vagrantfile and add the `myface::database` recipe to index 0 of the run_list
+
+    config.vm.provision :chef_solo do |chef|
+      ...
+
+      chef.run_list = [
+        "recipe[myface::database]",
+        "recipe[myface::default]"
+      ]
+    end
+
+While we're in the Vagrantfile we should also add the root password for MySQL so it isn't automatically generated for us and then lost. At the time of writing Berkshelf automatically populates these attributes for you as a nice example for how to override attributes. Re-open the Vagrantfile and add the attributes
+
+  config.vm.provision :chef_solo do |chef|
+    ...
+
+    chef.json = {
+      :mysql => {
+        :server_root_password => 'rootpass',
+        :server_debian_password => 'debpass',
+        :server_repl_password => 'replpass'
+      }
+    }
+
+    ...
+  end
+
+These attributes are documented in the [README for the MySQL cookbook](https://github.com/RiotGames/riot_mysql-cookbook/blob/master/README.md).
+
+We are nearly there but something is missing. Can you find it? Re-run the Vagrant provisioner and it would immediately become clear
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Sat, 28 Jul 2012 02:15:50 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [Sat, 28 Jul 2012 02:15:50 +0000] FATAL: ArgumentError: Cannot find a recipe matching database in cookbook myface
+
+If you recall an earlier section I had mentioned that adding a new file to your cookbook will not be picked up by Vagrant due to how shims are currently implemented in Berkshelf. This is something the Berkshelf team is actively working on to improve upon but until a fix has been created you need to re-install with shims
+
+    $ bundle exec berks install --shims
+    Using myface (0.0.1) at path: '/Users/reset/code/myface'
+    Using tomcat (0.10.4) at path: '/Users/reset/code/tomcat-cookbook'
+    Using artifact (0.10.1)
+    Using java (1.5.2)
+    Shims written to: '/Users/reset/code/myface/cookbooks'
+
+There is still one more problem. Let's re-run the Vagrant provisioner and see what's left
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Sat, 28 Jul 2012 02:19:11 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [Sat, 28 Jul 2012 02:19:11 +0000] FATAL: Chef::Exceptions::CookbookNotFound: Cookbook riot_mysql not found. If you're loading riot_mysql from another cookbook, make sure you configure the dependency in your metadata
+
+The output from Vagrant includes a well written error message telling you that if you're loading MySQL from another cookbook you should also configure the dependency in your metadata.
+
+Open up the `metadata.rb` file for editing and add "riot_mysql" as a dependency
+
+    name             "myface"
+    maintainer       "YOUR_NAME"
+    maintainer_email "YOUR_EMAIL"
+    license          "All rights reserved"
+    description      "Installs/Configures myface"
+    long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
+    version          "0.0.1"
+
+    depends "artifact", "~> 0.10.1"
+    depends "tomcat"
+    depends "riot_mysql", "~> 1.2.8"
+
+Now re-install berkshelf with shims to get the mysql cookbook and all of it's dependencies
+
+    $ bundle exec berks install --shims
+    Using myface (0.0.1) at path: '/Users/reset/code/myface'
+    Using tomcat (0.10.4) at path: '/Users/reset/code/tomcat-cookbook'
+    Using artifact (0.10.1)
+    Installing riot_mysql (1.2.8) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Using openssl (1.0.0)
+    Using java (1.5.2)
+    Shims written to: '/Users/reset/code/myface/cookbooks'
+
+And if we re-run the Vagrant provisioner MySQL will now successfully be installed
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    [Sat, 28 Jul 2012 02:40:22 +0000] INFO: *** Chef 10.12.0 ***
+    [Sat, 28 Jul 2012 02:40:23 +0000] INFO: Setting the run_list to ["recipe[myface::database]", "recipe[myface::default]"] from JSON
+    [Sat, 28 Jul 2012 02:40:23 +0000] INFO: Run List is [recipe[myface::database], recipe[myface::default]]
+    [Sat, 28 Jul 2012 02:40:23 +0000] INFO: Run List expands to [myface::database, myface::default]
+    ...
+    [Sat, 28 Jul 2012 02:40:24 +0000] INFO: Processing chef_gem[mysql] action install (riot_mysql::client line 59)
+    [Sat, 28 Jul 2012 02:40:28 +0000] INFO: chef_gem[mysql] installed version 2.8.1
+    [Sat, 28 Jul 2012 02:40:28 +0000] INFO: ruby_block[install the mysql chef_gem at run time] called
+    [Sat, 28 Jul 2012 02:40:28 +0000] INFO: Processing package[mysql-server] action install (riot_mysql::server line 77)
+    [Sat, 28 Jul 2012 02:40:28 +0000] INFO: package[mysql-server] installing mysql-server-5.1.61-4.el6 from base repository
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: package[mysql-server] installed version 5.1.61-4.el6
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing directory[/etc/mysql/conf.d] action create (riot_mysql::server line 84)
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: directory[/etc/mysql/conf.d] created directory /etc/mysql/conf.d
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: directory[/etc/mysql/conf.d] owner changed to 27
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: directory[/etc/mysql/conf.d] group changed to 27
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing service[mysql] action nothing (riot_mysql::server line 104)
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing template[/etc/my.cnf] action create (riot_mysql::server line 124)
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: template[/etc/my.cnf] backed up to /var/chef/backup/etc/my.cnf.chef-20120728024033
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: template[/etc/my.cnf] mode changed to 644
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: template[/etc/my.cnf] updated content
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: template[/etc/my.cnf] sending restart action to service[mysql] (immediate)
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing service[mysql] action restart (riot_mysql::server line 104)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: service[mysql] restarted
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[assign-root-password] action run (riot_mysql::server line 147)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: execute[assign-root-password] ran successfully
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing template[/etc/mysql_grants.sql] action create (riot_mysql::server line 171)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: template[/etc/mysql_grants.sql] updated content
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: template[/etc/mysql_grants.sql] sending run action to execute[mysql-install-privileges] (immediate)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[mysql-install-privileges] action run (riot_mysql::server line 187)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: execute[mysql-install-privileges] ran successfully
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[mysql-install-privileges] action nothing (riot_mysql::server line 187)
+    ...
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Chef Run complete in 12.018921229 seconds
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Running report handlers
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Report handlers complete
+
+Well we have MySQL installed but we don't have a database. In the next section we'll create a database and users to go with it that have proper permissions.
+
+## Creating a database and users with the Database cookbook
+
+# Refactoring default into application
 
 # Incrementing versions
 
