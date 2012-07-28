@@ -1068,7 +1068,7 @@ Start out by creating a new recipe called 'database'
 
     $ touch recipes/database.rb
 
-Since we're going to be using MySQL let's include MySQL's server recipe.
+And include the MySQL cookbooks's server recipe.
 
 _note: Due to a severe bug in the Opscode MySQL cookbook we will be using Riot Game's fork_
 
@@ -1098,19 +1098,19 @@ Open the Vagrantfile and add the `myface::database` recipe to index 0 of the run
 
 While we're in the Vagrantfile we should also add the root password for MySQL so it isn't automatically generated for us and then lost. At the time of writing Berkshelf automatically populates these attributes for you as a nice example for how to override attributes. Re-open the Vagrantfile and add the attributes
 
-  config.vm.provision :chef_solo do |chef|
-    ...
+    config.vm.provision :chef_solo do |chef|
+      ...
 
-    chef.json = {
-      :mysql => {
-        :server_root_password => 'rootpass',
-        :server_debian_password => 'debpass',
-        :server_repl_password => 'replpass'
+      chef.json = {
+        :mysql => {
+          :server_root_password => 'rootpass',
+          :server_debian_password => 'debpass',
+          :server_repl_password => 'replpass'
+        }
       }
-    }
 
-    ...
-  end
+      ...
+    end
 
 These attributes are documented in the [README for the MySQL cookbook](https://github.com/RiotGames/riot_mysql-cookbook/blob/master/README.md).
 
@@ -1214,7 +1214,85 @@ And if we re-run the Vagrant provisioner MySQL will now successfully be installe
 
 Well we have MySQL installed but we don't have a database. In the next section we'll create a database and users to go with it that have proper permissions.
 
-## Creating a database and users with the Database cookbook
+## Creating a database with the Database cookbook
+
+Opscode provides an amazing utility cookbook that exposes a number of Light-weight Resource Providers (LWRP) for manipulating persistant databases like MySQL and PostgreSQL. To get access to these LWRPs all we need to do is include the 'database' cookbook in the metadata of our own.
+
+Add the 'database' cookbook as a dependency in our `metadata.rb` file
+
+    name             "myface"
+    maintainer       "YOUR_NAME"
+    maintainer_email "YOUR_EMAIL"
+    license          "All rights reserved"
+    description      "Installs/Configures myface"
+    long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
+    version          "0.0.1"
+
+    depends "artifact", "~> 0.10.1"
+    depends "tomcat"
+    depends "riot_mysql", "~> 1.2.8"
+    depends "database"
+
+And re-run berks install with shims
+
+    $ bundle exec berks install --shims
+    Using myface (0.0.1) at path: '/Users/reset/code/myface'
+    Using tomcat (0.10.4) at path: '/Users/reset/code/tomcat-cookbook'
+    Using artifact (0.10.1)
+    Using riot_mysql (1.2.8)
+    Using openssl (1.0.0)
+    Installing database (1.2.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Using mysql (1.2.6)
+    Using windows (1.3.2)
+    Using chef_handler (1.0.6)
+    Installing postgresql (0.99.4) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Installing aws (0.100.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Installing xfs (1.0.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Using java (1.5.2)
+    Shims written to: '/Users/reset/code/myface/cookbooks'
+
+Now in the database recipe (`recipes/database.rb`) let's describe a database to be created for our application
+
+    mysql_database "myface_dev" do
+      connection(
+        :host => "localhost",
+        :username => "root",
+        :password => node[:mysql][:server_root_password]
+      )
+      action :create
+    end
+
+This resource will create a database in MySQL using the hash passed to the connection resource attribute. This hash is equivalent to what you might pass to mysqladmin on the command line. Remember that attribute that we explicitly set in the Vagrantfile for the MySQL root password? Here you see it again (`node[:mysql][:server_root_password]`) but this time we're reading it and passing it to MySQL for authorization.
+
+Now re-run the Vagrant provisioner to create the database
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Sat, 28 Jul 2012 03:33:45 +0000] INFO: Processing mysql_database[myface_dev] action create (myface::database line 12)
+    ...
+    [Sat, 28 Jul 2012 03:33:45 +0000] INFO: Chef Run complete in 3.253535476 seconds
+    [Sat, 28 Jul 2012 03:33:45 +0000] INFO: Running report handlers
+    [Sat, 28 Jul 2012 03:33:45 +0000] INFO: Report handlers complete
+
+If you don't believe the database has been created, check for yourself!
+
+    $ bundle exec vagrant ssh
+    vagrant> mysql -u root -p -e "show databases;"
+    +--------------------+
+    | Database           |
+    +--------------------+
+    | information_schema |
+    | myface_dev         |
+    | mysql              |
+    | test               |
+    +--------------------+
+
+See the [Database Cookbook's README](https://github.com/opscode-cookbooks/database/blob/master/README.md) for full documentation regarding creating databases.
+
+## Creating a MySQL user with the Database cookbook
 
 # Refactoring default into application
 
