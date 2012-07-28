@@ -1294,7 +1294,40 @@ See the [Database Cookbook's README](https://github.com/opscode-cookbooks/databa
 
 ## Creating a MySQL user with the Database cookbook
 
-# Refactoring default into application
+It's a good practice to create a user in MySQL with strict permissions for each one of your applications. Ideally this user will only have the ability to only manipulate the application's database and have no MySQL administrative privileges. Let's create a user for Myface and call it "myface_app".
+
+Open the database recipe (`recipes/database.rb`) and describe the new MySQL database user
+
+    mysql_database_user "myface_app" do
+      connection(
+        :host => "localhost",
+        :username => "root",
+        :password => node[:mysql][:server_root_password]
+      )
+      password "supersecret"
+      database_name "myface_dev"
+      host "localhost"
+      action [:create, :grant]
+    end
+
+When we re-run the Vagrant provisioner the user will be created
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Sat, 28 Jul 2012 03:51:59 +0000] INFO: mysql_database_user[myface_app]: granting access with statement [GRANT all ON myface_dev.* TO 'myface_app'@'localhost' IDENTIFIED BY 'supersecret']
+    ...
+    [Sat, 28 Jul 2012 03:51:59 +0000] INFO: Chef Run complete in 3.258085474 seconds
+    [Sat, 28 Jul 2012 03:51:59 +0000] INFO: Running report handlers
+    [Sat, 28 Jul 2012 03:51:59 +0000] INFO: Report handlers complete
+
+_note: It's worth noting that the password for your database was just output to the console and to a log on disk by Chef. As far as I am concerned this is a bug but it hasn't been addressed in the database cookbook yet. Please ensure in production that you destroy this log and clear your console anytime this resource changes state. Or maybe I'm just too paranoid... thanks [Pat](http://www.codeofhonor.com/blog/)._
+
+## Refactoring for security and strength
+
+# Refactoring default recipe into application recipe
 
 # Incrementing versions
 
