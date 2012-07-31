@@ -1325,7 +1325,46 @@ When we re-run the Vagrant provisioner the user will be created
 
 _note: It's worth noting that the password for your database was just output to the console and to a log on disk by Chef. As far as I am concerned this is a bug but it hasn't been addressed in the database cookbook yet. Please ensure in production that you destroy this log and clear your console anytime this resource changes state. Or maybe I'm just too paranoid... thanks [Pat](http://www.codeofhonor.com/blog/)._
 
-## Refactoring for security and strength
+## Reopening resource definitions: Making MySQL available on boot
+
+You would get a pretty nasty message right now if you were to reload your virtual machine or something sudden happened where the machine was shut down and you powered it back up. It would look something like this
+
+    [Tue, 31 Jul 2012 00:25:58 +0000] ERROR: Running exception handlers
+    [Tue, 31 Jul 2012 00:25:58 +0000] ERROR: Exception handlers complete
+    [Tue, 31 Jul 2012 00:25:58 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [Tue, 31 Jul 2012 00:25:58 +0000] FATAL: Mysql::Error: mysql_database[myface_dev] (myface::database line 12) had an error: Mysql::Error: Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock' (111)
+
+The database couldn't be created (or it's existence verified) because MySQL wasn't started and listening on it's sock. This is because the MySQL cookbook does not explicitly enable MySQL to be started after each boot. Generally when we start a machine up we want it to come up in it's "best" state.
+
+Open the `recipes/database.rb` recipe and re-open the [service resource](http://wiki.opscode.com/display/chef/Resources#Resources-Service) defining the MySQL service and make sure it's enabled
+
+    include_recipe "riot_mysql::server"
+
+    service "mysql" do
+      action :enable
+    end
+
+    ...
+
+The placement of this resource definition is __very important__. It is placed after the inclusion of the mysql server recipe because mysql needs to be installed before the service is available to interact with. This is similar to how you open a class or module in Ruby for modifications.
+
+Run the vagrant provisioner to pickup the changes
+
+    $ bundle exec vagrant provision
+
+# Configurable Attributes Strike Back
+
+When we wrote the database recipe the database name, user, and the user's password were all hardcoded directly into the recipe. This is a bad pattern for a few reasons.
+
+Security. Chef attributes are indexed and are publically available to all API clients. This means that your database credentials are easy found if your Chef server is compromised. And, since the database is nicely marked with the recipe named "myface::database", the hostname and ipaddress are effortlessly found by a potential attacker.
+
+Keeping your code DRY. It's easy to make mistakes as a cookbook author when things that could be extracted into configurable attributes are littered throughout multiple recipes. An author needs to make good use of his editor's find and replace function if he hopes to reconfigure his application properly.
+
+In a previous section the artifact URL and version were refactored into attributes. This is an excellent way to store non-sensitive data and let's us keep our code nice and DRY, but it's a poor choice when storing passwords or other sensitive data. Chef provides you with the [Encrypted Data Bags](http://wiki.opscode.com/display/chef/Encrypted+Data+Bags) primitive for such storage needs.
+
+## Extracting database connection info into an Encrypted Data Bag
+
+## Abstracting In a previous section we abstracted
 
 # Refactoring default recipe into application recipe
 
