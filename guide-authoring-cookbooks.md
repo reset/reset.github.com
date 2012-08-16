@@ -314,7 +314,7 @@ After you've got your `metadata.rb` setup with some cookbook dependencies you ne
 
     $ bundle exec berks install --shims
     Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Installing artifact (0.10.1) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Installing artifact (0.10.2) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
     Shims written to: '/Users/reset/code/myface/cookbooks'
 
 The `--shims` flag is very important to include. In case you have forgotten what shims are; shims are the go between for your cookbooks on your host machine to your virtual machine. They are what make your cookbooks available within your virtual machine.
@@ -488,7 +488,7 @@ Or at least it should have... There is currently a limitation with the way shims
 
     $ bundle exec berks install --shims
     Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using artifact (0.10.1)
+    Using artifact (0.10.2)
     Shims written to: '/Users/reset/code/myface/cookbooks'
 
 Now re-run the provisioner and everything will be K
@@ -558,7 +558,7 @@ Always use the right resource for the job and avoid using the [Script resource](
 
 Open up the `metadata.rb` file in our cookbook and add a depenency for Tomcat below the artifact dependency (note: order does not matter)
 
-    depends "tomcat", "~> 0.10.4"
+    depends "tomcat", "~> 0.11.0"
 
 Now you should have a `metadata.rb` file that looks like this
 
@@ -571,14 +571,14 @@ Now you should have a `metadata.rb` file that looks like this
     version          "0.0.1"
 
     depends "artifact", "~> 0.10.1"
-    depends "tomcat", "~> 0.10.4"
+    depends "tomcat", "~> 0.11.0"
 
 Run the Berkshelf install command to get the Tomcat cookbook and all of it's dependent cookbooks. NOTE: Don't forget the `--shims` flag! This will ensure that the cookbooks are available to our virtual machine.
 
     $ bundle exec berks install --shims
     Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using artifact (0.10.1)
-    Installing tomcat (0.10.4) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Using artifact (0.10.2)
+    Installing tomcat (0.11.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
     Installing java (1.5.2) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
     Shims written to: '/Users/reset/code/myface/cookbooks'
 
@@ -1070,8 +1070,6 @@ Start out by creating a new recipe called 'database'
 
 And include the MySQL cookbooks's server recipe.
 
-_note: Due to a severe bug in the Opscode MySQL cookbook we will be using Riot Game's fork_
-
     #
     # Cookbook Name:: myface
     # Recipe:: database
@@ -1081,7 +1079,7 @@ _note: Due to a severe bug in the Opscode MySQL cookbook we will be using Riot G
     # All rights reserved - Do Not Redistribute
     #
 
-    include_recipe "riot_mysql::server"
+    include_recipe "mysql::server"
 
 To test our work out we'll want to add this new recipe to the `run_list` of our virtual machine. This is done by editing the Vagrantfile and adding the `myface::database` recipe to the array of recipes in the run_list. You should place the database as the first recipe in the run_list since it's common for the application server to require a database to connect to before it would successfully start.
 
@@ -1112,7 +1110,7 @@ While we're in the Vagrantfile we should also add the root password for MySQL so
       ...
     end
 
-These attributes are documented in the [README for the MySQL cookbook](https://github.com/RiotGames/riot_mysql-cookbook/blob/master/README.md).
+These attributes are documented in the [README for the MySQL cookbook](https://github.com/RiotGames/mysql-cookbook/blob/master/README.md).
 
 We are nearly there but something is missing. Can you find it? Re-run the Vagrant provisioner and it would immediately become clear
 
@@ -1128,8 +1126,8 @@ If you recall an earlier section I had mentioned that adding a new file to your 
 
     $ bundle exec berks install --shims
     Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using tomcat (0.10.4) at path: '/Users/reset/code/tomcat-cookbook'
-    Using artifact (0.10.1)
+    Using artifact (0.10.2)
+    Using tomcat (0.11.0)
     Using java (1.5.2)
     Shims written to: '/Users/reset/code/myface/cookbooks'
 
@@ -1141,11 +1139,11 @@ There is still one more problem. Let's re-run the Vagrant provisioner and see wh
     [default] Running chef-solo...
     ...
     [Sat, 28 Jul 2012 02:19:11 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
-    [Sat, 28 Jul 2012 02:19:11 +0000] FATAL: Chef::Exceptions::CookbookNotFound: Cookbook riot_mysql not found. If you're loading riot_mysql from another cookbook, make sure you configure the dependency in your metadata
+    [Sat, 28 Jul 2012 02:19:11 +0000] FATAL: Chef::Exceptions::CookbookNotFound: Cookbook mysql not found. If you're loading mysql from another cookbook, make sure you configure the dependency in your metadata
 
 The output from Vagrant includes a well written error message telling you that if you're loading MySQL from another cookbook you should also configure the dependency in your metadata.
 
-Open up the `metadata.rb` file for editing and add "riot_mysql" as a dependency
+Open up the `metadata.rb` file for editing and add "mysql" as a dependency
 
     name             "myface"
     maintainer       "YOUR_NAME"
@@ -1156,18 +1154,19 @@ Open up the `metadata.rb` file for editing and add "riot_mysql" as a dependency
     version          "0.0.1"
 
     depends "artifact", "~> 0.10.1"
-    depends "tomcat"
-    depends "riot_mysql", "~> 1.2.8"
+    depends "tomcat", "~> 0.11.0"
+    depends "mysql", "~> 1.3.0"
 
 Now re-install berkshelf with shims to get the mysql cookbook and all of it's dependencies
 
     $ bundle exec berks install --shims
     Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using tomcat (0.10.4) at path: '/Users/reset/code/tomcat-cookbook'
-    Using artifact (0.10.1)
-    Installing riot_mysql (1.2.8) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Using openssl (1.0.0)
+    Using artifact (0.10.2)
+    Using tomcat (0.11.0)
     Using java (1.5.2)
+    Installing mysql (1.3.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Installing openssl (1.0.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Installing build-essential (1.1.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
     Shims written to: '/Users/reset/code/myface/cookbooks'
 
 And if we re-run the Vagrant provisioner MySQL will now successfully be installed
@@ -1181,32 +1180,32 @@ And if we re-run the Vagrant provisioner MySQL will now successfully be installe
     [Sat, 28 Jul 2012 02:40:23 +0000] INFO: Run List is [recipe[myface::database], recipe[myface::default]]
     [Sat, 28 Jul 2012 02:40:23 +0000] INFO: Run List expands to [myface::database, myface::default]
     ...
-    [Sat, 28 Jul 2012 02:40:24 +0000] INFO: Processing chef_gem[mysql] action install (riot_mysql::client line 59)
+    [Sat, 28 Jul 2012 02:40:24 +0000] INFO: Processing chef_gem[mysql] action install (mysql::client line 59)
     [Sat, 28 Jul 2012 02:40:28 +0000] INFO: chef_gem[mysql] installed version 2.8.1
     [Sat, 28 Jul 2012 02:40:28 +0000] INFO: ruby_block[install the mysql chef_gem at run time] called
-    [Sat, 28 Jul 2012 02:40:28 +0000] INFO: Processing package[mysql-server] action install (riot_mysql::server line 77)
+    [Sat, 28 Jul 2012 02:40:28 +0000] INFO: Processing package[mysql-server] action install (mysql::server line 77)
     [Sat, 28 Jul 2012 02:40:28 +0000] INFO: package[mysql-server] installing mysql-server-5.1.61-4.el6 from base repository
     [Sat, 28 Jul 2012 02:40:33 +0000] INFO: package[mysql-server] installed version 5.1.61-4.el6
-    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing directory[/etc/mysql/conf.d] action create (riot_mysql::server line 84)
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing directory[/etc/mysql/conf.d] action create (mysql::server line 84)
     [Sat, 28 Jul 2012 02:40:33 +0000] INFO: directory[/etc/mysql/conf.d] created directory /etc/mysql/conf.d
     [Sat, 28 Jul 2012 02:40:33 +0000] INFO: directory[/etc/mysql/conf.d] owner changed to 27
     [Sat, 28 Jul 2012 02:40:33 +0000] INFO: directory[/etc/mysql/conf.d] group changed to 27
-    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing service[mysql] action nothing (riot_mysql::server line 104)
-    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing template[/etc/my.cnf] action create (riot_mysql::server line 124)
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing service[mysql] action nothing (mysql::server line 104)
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing template[/etc/my.cnf] action create (mysql::server line 124)
     [Sat, 28 Jul 2012 02:40:33 +0000] INFO: template[/etc/my.cnf] backed up to /var/chef/backup/etc/my.cnf.chef-20120728024033
     [Sat, 28 Jul 2012 02:40:33 +0000] INFO: template[/etc/my.cnf] mode changed to 644
     [Sat, 28 Jul 2012 02:40:33 +0000] INFO: template[/etc/my.cnf] updated content
     [Sat, 28 Jul 2012 02:40:33 +0000] INFO: template[/etc/my.cnf] sending restart action to service[mysql] (immediate)
-    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing service[mysql] action restart (riot_mysql::server line 104)
+    [Sat, 28 Jul 2012 02:40:33 +0000] INFO: Processing service[mysql] action restart (mysql::server line 104)
     [Sat, 28 Jul 2012 02:40:35 +0000] INFO: service[mysql] restarted
-    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[assign-root-password] action run (riot_mysql::server line 147)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[assign-root-password] action run (mysql::server line 147)
     [Sat, 28 Jul 2012 02:40:35 +0000] INFO: execute[assign-root-password] ran successfully
-    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing template[/etc/mysql_grants.sql] action create (riot_mysql::server line 171)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing template[/etc/mysql_grants.sql] action create (mysql::server line 171)
     [Sat, 28 Jul 2012 02:40:35 +0000] INFO: template[/etc/mysql_grants.sql] updated content
     [Sat, 28 Jul 2012 02:40:35 +0000] INFO: template[/etc/mysql_grants.sql] sending run action to execute[mysql-install-privileges] (immediate)
-    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[mysql-install-privileges] action run (riot_mysql::server line 187)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[mysql-install-privileges] action run (mysql::server line 187)
     [Sat, 28 Jul 2012 02:40:35 +0000] INFO: execute[mysql-install-privileges] ran successfully
-    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[mysql-install-privileges] action nothing (riot_mysql::server line 187)
+    [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Processing execute[mysql-install-privileges] action nothing (mysql::server line 187)
     ...
     [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Chef Run complete in 12.018921229 seconds
     [Sat, 28 Jul 2012 02:40:35 +0000] INFO: Running report handlers
@@ -1220,6 +1219,12 @@ Opscode provides an amazing utility cookbook that exposes a number of Light-weig
 
 Add the 'database' cookbook as a dependency in our `metadata.rb` file
 
+  depends "database", "~> 1.3.4"
+
+Because the database cookbook has it's own requirement for MySQL we can also go ahead and remove our dependncy on the MySQL cookbook. We will inherit the dependency by the databse cookbook since it has it's own constraint defined.
+
+Your `metadata.rb` file should now look like
+
     name             "myface"
     maintainer       "YOUR_NAME"
     maintainer_email "YOUR_EMAIL"
@@ -1229,26 +1234,23 @@ Add the 'database' cookbook as a dependency in our `metadata.rb` file
     version          "0.0.1"
 
     depends "artifact", "~> 0.10.1"
-    depends "tomcat"
-    depends "riot_mysql", "~> 1.2.8"
-    depends "database"
+    depends "tomcat", "~> 0.11.0"
+    depends "database", "~> 1.3.4"
 
 And re-run berks install with shims
 
     $ bundle exec berks install --shims
     Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using tomcat (0.10.4) at path: '/Users/reset/code/tomcat-cookbook'
-    Using artifact (0.10.1)
-    Using riot_mysql (1.2.8)
+    Using artifact (0.10.2)
+    Using tomcat (0.11.0)
+    Using java (1.5.2)
+    Installing database (1.3.4) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Using mysql (1.3.0)
     Using openssl (1.0.0)
-    Installing database (1.2.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Using mysql (1.2.6)
-    Using windows (1.3.2)
-    Using chef_handler (1.0.6)
-    Installing postgresql (0.99.4) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    Using build-essential (1.1.0)
+    Installing postgresql (1.0.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
     Installing aws (0.100.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
     Installing xfs (1.0.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Using java (1.5.2)
     Shims written to: '/Users/reset/code/myface/cookbooks'
 
 Now in the database recipe (`recipes/database.rb`) let's describe a database to be created for our application
@@ -1265,6 +1267,35 @@ Now in the database recipe (`recipes/database.rb`) let's describe a database to 
 This resource will create a database in MySQL using the hash passed to the connection resource attribute. This hash is equivalent to what you might pass to mysqladmin on the command line. Remember that attribute that we explicitly set in the Vagrantfile for the MySQL root password? Here you see it again (`node[:mysql][:server_root_password]`) but this time we're reading it and passing it to MySQL for authorization.
 
 Now re-run the Vagrant provisioner to create the database
+
+    $ bundle exec vagrant provision
+    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
+    [default] Generating chef JSON and uploading...
+    [default] Running chef-solo...
+    ...
+    [Thu, 16 Aug 2012 23:25:45 +0000] INFO: Processing mysql_database[myface_dev] action create (myface::database line 17)
+    [Thu, 16 Aug 2012 23:25:45 +0000] ERROR: Running exception handlers
+    [Thu, 16 Aug 2012 23:25:45 +0000] ERROR: Exception handlers complete
+    [Thu, 16 Aug 2012 23:25:45 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [Thu, 16 Aug 2012 23:25:45 +0000] FATAL: LoadError: no such file to load -- mysql
+
+Well that's not good: another cryptic FATAL error. This message is actually coming from Ruby itself. If you are a Ruby developer coming to Chef you've probably seen this message before. "no such file to load -- {file}" is the error message from a LoadError. When you attempt to use `require` with a gem that is not located in your load path this error is thrown.
+
+Here we are getting a load error for the MySQL gem because we didn't read the README for the database cookbook (or you can blame me since I didn't tell you about it). The README explains to use the MySQL LWRP's you need to include the `database::mysql` recipe in your recipe before any MySQL LWRPs are processed. Let's go ahead and include that recipe in our database recipe to get this error patched up.
+
+    include_recipe "mysql::server"
+    include_recipe "database::mysql"
+
+    mysql_database "myface_dev" do
+      connection(
+        :host => "localhost",
+        :username => "root",
+        :password => node[:mysql][:server_root_password]
+      )
+      action :create
+    end
+
+Now if we re-run the Vagrant provisioner the database will be created
 
     $ bundle exec vagrant provision
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
@@ -1338,7 +1369,7 @@ The database couldn't be created (or it's existence verified) because MySQL wasn
 
 Open the `recipes/database.rb` recipe and re-open the [service resource](http://wiki.opscode.com/display/chef/Resources#Resources-Service) defining the MySQL service and make sure it's enabled
 
-    include_recipe "riot_mysql::server"
+    include_recipe "mysql::server"
 
     service "mysql" do
       action :enable
