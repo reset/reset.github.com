@@ -63,13 +63,15 @@ Gecode is a requirement of Berkshelf as of version (0.4.0.rc1).
 
 Like Bundler (or Maven) - Berkshelf is a dependency resolver and retriever for Chef Cookbooks.
 
-    $ gem install berkshelf
+    $ gem install berkshelf -v 0.5.0.rc2
+
+__note__: This guide requires the latest pre-release version of Berkshelf (0.5.0.rc2).
 
 ## Install VirtualBox
 
 VirtualBox is a virtualization solution for creating virtual machines on your local computer. We will be using it to test your software and cookbooks inside a controlled environment.
 
-Download Virtualbox from the [Virtualbox Downloads Page](https://www.virtualbox.org/wiki/Downloads) and then install it. We will be using version 4.1.18 in this guide.
+Download Virtualbox from the [Virtualbox Downloads Page](https://www.virtualbox.org/wiki/Downloads) and then install it. We will be using version 4.2.0 in this guide.
 
 # Creating the Cookbook
 
@@ -85,18 +87,17 @@ Let's begin by generating a new cookbook for our application. We'll call it "myf
           create  myface/recipes
           create  myface/resources
           create  myface/recipes/default.rb
-          create  myface/README.md
           create  myface/metadata.rb
+          create  myface/LICENSE
+          create  myface/README.md
           create  myface/Berksfile
           create  myface/chefignore
           create  myface/.gitignore
              run  git init from "./myface"
-    Initialized empty Git repository in /Users/reset/code/berkshelf/myface/.git/
           create  myface/Thorfile
           create  myface/Gemfile
           create  myface/Vagrantfile
-    Using myface (0.0.1) at path: '/Users/reset/code/berkshelf/myface'
-    Shims written to: '/Users/reset/code/berkshelf/myface/cookbooks'
+    Using myface (0.0.1) at path: '/Users/reset/code/myface'
 
 This will create a skeleton for a new cookbook named 'myface' in the directory `myface` in your current working directory. The skeleton will contain some additional files to get you started iterating quickly with Berkshelf.
 
@@ -111,6 +112,10 @@ Switch into the directory of the newly created cookbook and install the Gem depe
 
 Bundler will install all of the dependent RubyGems and garauntee that you have the right versions.
 
+__note:__ Since we are using a pre-release of Berkshelf you will need to open the Gemfile and replace the `gem 'berkshelf'` line with
+
+    gem 'berkshelf', '>= 0.5.0.rc2'
+
 ## Starting your virtual machine
 
 A `Vagrantfile` was generated for you with a boilerplate configuration that should be suitable for our needs. The Vagrantfile is configured to download and boot a CentOS 6.3 Vagrant Box and provision it with `chef-solo`. I recommend sticking with these defaults while you are working through this guide.
@@ -121,8 +126,11 @@ Start up your virtual machine
     [default] Importing base box 'Berkshelf-CentOS-6.3-x86_64-minimal'...
     [default] Matching MAC address for NAT networking...
     [default] Clearing any previously set forwarded ports...
+    [default] Fixed port collision for 22 => 2222. Now on port 2200.
     [default] Forwarding ports...
-    [default] -- 22 => 2222 (adapter 1)
+    [default] -- 22 => 2200 (adapter 1)
+    [Berkshelf] installing cookbooks...
+    [Berkshelf] Using myface (0.0.1) at path: '/Users/reset/code/myface'
     [default] Creating shared folders metadata...
     [default] Clearing any previously set network interfaces...
     [default] Preparing network interfaces based on configuration...
@@ -136,16 +144,16 @@ Start up your virtual machine
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: *** Chef 10.12.0 ***
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Run List is [recipe[myface::default]]
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Run List expands to [myface::default]
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Starting Chef Run for localhost
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Running start handlers
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Start handlers complete.
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Chef Run complete in 0.020575978 seconds
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Running report handlers
-    [Mon, 23 Jul 2012 20:16:30 +0000] INFO: Report handlers complete
+    [2012-09-20T20:32:21+00:00] INFO: *** Chef 10.14.2 ***
+    [2012-09-20T20:32:21+00:00] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [2012-09-20T20:32:21+00:00] INFO: Run List is [recipe[myface::default]]
+    [2012-09-20T20:32:21+00:00] INFO: Run List expands to [myface::default]
+    [2012-09-20T20:32:21+00:00] INFO: Starting Chef Run for myface-berkshelf
+    [2012-09-20T20:32:21+00:00] INFO: Running start handlers
+    [2012-09-20T20:32:21+00:00] INFO: Start handlers complete.
+    [2012-09-20T20:32:21+00:00] INFO: Chef Run complete in 0.026849441 seconds
+    [2012-09-20T20:32:21+00:00] INFO: Running report handlers
+    [2012-09-20T20:32:21+00:00] INFO: Report handlers complete
 
 The default CentOS 6.3 Vagrant Box can be swapped with the OS of your choosing by opening the `Vagrantfile` inside your cookbook with your [favorite editor](http://www.sublimetext.com/2) and editting the values of the `config.vm.box` and `config.vm.box_url` attributes.
 
@@ -163,6 +171,11 @@ Check the full [Vagrant Documentation](http://vagrantup.com/v1/docs/index.html) 
 If at anytime your virtual machine becomes unstable or if you'd like to start over you can destroy your virtual machine with one command
 
     $ bundle exec vagrant destroy
+    [default] Forcing shutdown of VM...
+    [default] Destroying VM and associated drives...
+    [Berkshelf] cleaning Vagrant's shelf
+
+__note__: If you destroy VM make sure to recreate it with `bundle exec vagrant up` before moving to the next section
 
 # Deploying with Artifact Deploy
 
@@ -183,69 +196,67 @@ Open the default recipe for editing at `myface/recipes/default.rb` and add follo
 
 Save your work.
 
-Next we will re-provision your virtual machine by running Vagrant's __provision__command. Provision will re-run the Chef-Solo provisioner. This is the same provisioner that ran earlier when we started our virtual machine. Vagrant will automatically pick up the changes that you made in the default recipe and attempt to provision the node with these changes. Vagrant is able to automatically receive these updates because a path on your host machine is automatically mounted into the virtual machine when you run `vagrant up`. Berkshelf populates this path with shims pointing to the actual contents of the cookbooks managed by Berkshelf.
+Next we will re-provision your virtual machine by running Vagrant's __provision__command. Provision will re-run the Chef-Solo provisioner. This is the same provisioner that ran earlier when we started our virtual machine.
+
+Through the magic of the Berkshelf Vagrant plugin - Vagrant will automatically make any changes you make to your cookbook and all of your cookbook's dependencies available to the virtual machine.
 
     $ bundle exec vagrant provision
 
 You should have experienced a failure in the provisioning
 
+    [Berkshelf] installing cookbooks...
+    [Berkshelf] Using myface (0.0.1) at path: '/Users/reset/code/myface'
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
-    [Mon, 23 Jul 2012 20:48:53 +0000] INFO: *** Chef 10.12.0 ***
-    [Mon, 23 Jul 2012 20:48:53 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
-    [Mon, 23 Jul 2012 20:48:53 +0000] INFO: Run List is [recipe[myface::default]]
-    [Mon, 23 Jul 2012 20:48:53 +0000] INFO: Run List expands to [myface::default]
-    [Mon, 23 Jul 2012 20:48:53 +0000] INFO: Starting Chef Run for localhost
-    [Mon, 23 Jul 2012 20:48:53 +0000] INFO: Running start handlers
-    [Mon, 23 Jul 2012 20:48:53 +0000] INFO: Start handlers complete.
-    [Mon, 23 Jul 2012 20:48:53 +0000] ERROR: Running exception handlers
-    [Mon, 23 Jul 2012 20:48:53 +0000] ERROR: Exception handlers complete
-    [Mon, 23 Jul 2012 20:48:53 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
-    [Mon, 23 Jul 2012 20:48:53 +0000] FATAL: NameError: Cannot find a resource for artifact_deploy on centos version 6.3
+    [2012-09-20T20:39:03+00:00] INFO: *** Chef 10.14.2 ***
+    [2012-09-20T20:39:04+00:00] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [2012-09-20T20:39:04+00:00] INFO: Run List is [recipe[myface::default]]
+    [2012-09-20T20:39:04+00:00] INFO: Run List expands to [myface::default]
+    [2012-09-20T20:39:04+00:00] INFO: Starting Chef Run for myface-berkshelf
+    [2012-09-20T20:39:04+00:00] INFO: Running start handlers
+    [2012-09-20T20:39:04+00:00] INFO: Start handlers complete.
+
+    ================================================================================
+    Recipe Compile Error in /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb
+    ================================================================================
+
+    NameError
+    ---------
+    Cannot find a resource for artifact_deploy on centos version 6.3
+
+    Cookbook Trace:
+    ---------------
+      /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:10:in `from_file'
+
+    Relevant File Content:
+    ----------------------
+    /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:
+
+      1:  #
+      2:  # Cookbook Name:: myface
+      3:  # Recipe:: default
+      4:  #
+      5:  # Copyright (C) 2012 YOUR_NAME
+      6:  # 
+      7:  # All rights reserved - Do Not Redistribute
+      8:  #
+      9:  
+
+    [2012-09-20T20:39:04+00:00] ERROR: Running exception handlers
+    [2012-09-20T20:39:04+00:00] ERROR: Exception handlers complete
+    [2012-09-20T20:39:04+00:00] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [2012-09-20T20:39:04+00:00] FATAL: NameError: Cannot find a resource for artifact_deploy on centos version 6.3
     Chef never successfully completed! Any errors should be visible in the
     output above. Please fix your recipes so that they properly complete.
 
-The important bit here is in the lines prefaced with FATAL.
+The important bit is the NameError. It appears that we do not have the resource `artifact_deploy` available on CentOS 6.3.
 
-    [Mon, 23 Jul 2012 20:48:53 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
-    [Mon, 23 Jul 2012 20:48:53 +0000] FATAL: NameError: Cannot find a resource for artifact_deploy on centos version 6.3    
-
-When inspecting a Chef stacktrace the source of your problem is generally marked by FATAL. In this case the resource artifact_deploy cannot be found. If we inspected the stacktrace that was dumped to `/tmp/vagrant-chef-1/chef-stacktrace.out` in our virtual machine we'll see exactly which line caused this fatal error.
-
-    $ bundle exec vagrant ssh
-    [vagrant@localhost ~]$ cat /tmp/vagrant-chef-1/chef-stacktrace.out
-    Generated at 2012-07-23 20:48:53 +0000
-    NameError: Cannot find a resource for artifact_deploy on centos version 6.3
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/resource_platform_map.rb:126:in `get'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/resource.rb:667:in `resource_for_platform'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/resource.rb:684:in `resource_for_node'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/mixin/recipe_definition_dsl_core.rb:58:in `method_missing'
-    /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:10:in `from_file'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/mixin/from_file.rb:30:in `instance_eval'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/mixin/from_file.rb:30:in `from_file'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/cookbook_version.rb:578:in `load_recipe'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/mixin/language_include_recipe.rb:46:in `load_recipe'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/mixin/language_include_recipe.rb:33:in `block in include_recipe'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/mixin/language_include_recipe.rb:27:in `each'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/mixin/language_include_recipe.rb:27:in `include_recipe'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/run_context.rb:72:in `block in load'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/run_context.rb:69:in `each'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/run_context.rb:69:in `load'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/client.rb:199:in `setup_run_context'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/client.rb:162:in `run'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/application/solo.rb:207:in `block in run_application'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/application/solo.rb:195:in `loop'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/application/solo.rb:195:in `run_application'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/lib/chef/application.rb:70:in `run'
-    /opt/chef/embedded/lib/ruby/gems/1.9.1/gems/chef-10.12.0/bin/chef-solo:25:in `<top (required)>'
-    /usr/bin/chef-solo:19:in `load'
-
-Stacktraces follow execution down to the very place that the exception was raised. Because of this the point of which the exception originated from your recipe is almost never the last line executed. In this example you can see that 5 lines from the top we see the last thing that was executed by our recipe.
+You can also see what file the error occured in and on what line by looking at the Cookbook Trace section. In this case it's on line 10 in the default recipe of the myface cookbook.
 
     /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:10:in `from_file'
 
-Line 10 in the default recipe is the start of the `artifact_deploy` block that we put into the recipe. The NameError exception says that we can't find a resource for artifact_deploy for the CentOS 6.3 platform. This is because we haven't told our cookbook about the Artifact Cookbook that contains the Light-weight Resource and Provider (LWRP) that provides `artifact_deploy` to our recipe.
+We actually don't have the `artifact_deploy` resource at all; it's not part of Chef or the only cookbook available to our Chef Client. This is because we haven't told our cookbook about the Artifact Cookbook which contains the Light-weight Resource and Provider (LWRP) that provides `artifact_deploy` to our recipes.
 
 ## Working with cookbook metadata
 
@@ -268,11 +279,11 @@ For more information see the complete documentation for [Cookbook Metadata](http
 
 Open up the `metadata.rb` file in our cookbook and add the following line of code to the bottom
 
-    depends "artifact", "~> 0.10.1"
+    depends "artifact", "~> 0.10.7"
 
 This tells the Chef server and clients that the myface cookbook depends on the artifact cookbook. We've also provided a version constraint to the dependency which ensures that other cookbook authors or operators are using a version of the artifact cookbook that we approve works with our cookbook. You should __always set resonable version constraints for your dependencies__ to save your operators and fellow cookbook authors from wanting to [light you on fire](http://24.media.tumblr.com/tumblr_m7fpxfkHM81rzupqxo1_500.png).
 
-Cookbooks follow the [SemVer](http://semver.org) versioning scheme and accept constraints containing anyone of the approved constraint operators. In this case we've used the optimistic operator `~>` to tell our cookbook that we allow any version of artifact that is greater than 0.10.1 but _not_ 0.11.0 or higher. This means we accept 0.10.1, 0.10.2, or 0.10.30002, etc.
+Cookbooks follow the [SemVer](http://semver.org) versioning scheme and accept constraints containing anyone of the approved constraint operators. In this case we've used the optimistic operator `~>` to tell our cookbook that we allow any version of artifact that is greater than 0.10.7 but _not_ 0.11.0 or higher. This means we accept 0.10.7, 0.10.8, or 0.10.30002, etc.
 
 Now you should have a `metadata.rb` file that looks like this
 
@@ -284,61 +295,29 @@ Now you should have a `metadata.rb` file that looks like this
     long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
     version          "0.0.1"
 
-    depends "artifact", "~> 0.10.1"
+    depends "artifact", "~> 0.10.7"
 
 Now re-run the vagrant provisioner and see what we get
 
     $ bundle exec vagrant provision
+    [Berkshelf] installing cookbooks...
+    [Berkshelf] Using myface (0.0.1) at path: '/Users/reset/code/myface'
+    [Berkshelf] Installing artifact (0.10.7) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
+    [Berkshelf] Using nexus (0.11.2)
+    [Berkshelf] Using ark (0.0.11)
+    [Berkshelf] Using java (1.5.4)
+    [Berkshelf] Using nginx (0.101.6)
+    [Berkshelf] Using build-essential (1.1.2)
+    [Berkshelf] Using runit (0.15.0)
+    [Berkshelf] Using bluepill (1.1.0)
+    [Berkshelf] Using yum (0.8.0)
+    [Berkshelf] Using ohai (1.0.2)
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
-    [Mon, 23 Jul 2012 21:58:45 +0000] INFO: *** Chef 10.12.0 ***
-    [Mon, 23 Jul 2012 21:58:46 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
-    [Mon, 23 Jul 2012 21:58:46 +0000] INFO: Run List is [recipe[myface::default]]
-    [Mon, 23 Jul 2012 21:58:46 +0000] INFO: Run List expands to [myface::default]
-    [Mon, 23 Jul 2012 21:58:46 +0000] INFO: Starting Chef Run for localhost
-    [Mon, 23 Jul 2012 21:58:46 +0000] INFO: Running start handlers
-    [Mon, 23 Jul 2012 21:58:46 +0000] INFO: Start handlers complete.
-    [Mon, 23 Jul 2012 21:58:46 +0000] ERROR: Running exception handlers
-    [Mon, 23 Jul 2012 21:58:46 +0000] ERROR: Exception handlers complete
-    [Mon, 23 Jul 2012 21:58:46 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
-    [Mon, 23 Jul 2012 21:58:46 +0000] FATAL: NameError: Cannot find a resource for artifact_deploy on centos version 6.3
-    Chef never successfully completed! Any errors should be visible in the
-    output above. Please fix your recipes so that they properly complete.
-
-Looks like we have the same error as before even after we've told the myface cookbook that requires the artifact cookbook. What did we forget?
-
-## Using Berkshelf to gather dependencies
-
-After you've got your `metadata.rb` setup with some cookbook dependencies you need gather those dependencies and make them available to Vagrant. This can easily be done with Berkshelf
-
-    $ bundle exec berks install --shims
-    Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Installing artifact (0.10.2) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Shims written to: '/Users/reset/code/myface/cookbooks'
-
-The `--shims` flag is very important to include. In case you have forgotten what shims are; shims are the go between for your cookbooks on your host machine to your virtual machine. They are what make your cookbooks available within your virtual machine.
-
-You may be wondering how Berkshelf was able to figure out where the artifact cookbook was located and how it retrieved it. When we generated the cookbook earlier on it created a file called `Berksfile` at the root of the myface cookbook. This file is read by the `berks` command when you run the install command. If you open the Berksfile that was generated for you, you will see just one line with one word
-
-    metadata
-
-If you are familiar with RubyGems and Bundler this is similar to the their `gemspec` keyword. Berkshelf will inspect the `metadata.rb` file of the cookbook and recursively download the dependencies of your cookbook and their dependencies (and so on). Berkshelf will search the Opscode community site for a cookbook matching the version constraint if you do not explicitly provide a source for the artifact cookbook in your Berksfile.
-
-If the version of the artifact cookbook wasn't available on the Opscode community site or you just want to host things locally an explicit source can be provided for where the cookbook can be found
-
-    cookbook 'artifact', '~> 0.10.1', chef_api: :knife
-
-This entry in your Berksfile would tell Berkshelf to look at at Chef API using your Knife configuration for authorization to download the artifact cookbook. Let's leave things as is for now for the purposes of this guide.
-
-Now if we re-run the Vagrant provisioner we should no longer have a NameError exception raised for the missing artifact_deploy Light-weight Resource and Provider (LWRP).
-
-    $ bundle exec vagrant provision
     ...
-    [Mon, 23 Jul 2012 22:04:20 +0000] ERROR: Running exception handlers
-    [Mon, 23 Jul 2012 22:04:20 +0000] ERROR: Exception handlers complete
-    [Mon, 23 Jul 2012 22:04:20 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
-    [Mon, 23 Jul 2012 22:04:20 +0000] FATAL: Chef::Exceptions::UserIDNotFound: artifact_deploy[myface] (myface::default line 10) had an error: Chef::Exceptions::UserIDNotFound: directory[/tmp/vagrant-chef-1/artifact_deploys/myface/1.0.0] (/tmp/vagrant-chef-1/chef-solo-1/cookbooks/artifact/providers/deploy.rb line 201) had an error: Chef::Exceptions::UserIDNotFound: cannot determine user id for 'myface', does the user exist on this system?
+    [2012-09-20T20:44:11+00:00] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
+    [2012-09-20T20:44:11+00:00] FATAL: Chef::Exceptions::UserIDNotFound: artifact_deploy[myface] (myface::default line 10) had an error: Chef::Exceptions::UserIDNotFound: remote_file[/tmp/vagrant-chef-1/artifact_deploys/myface/1.0.0/myface-1.0.0.tar.gz] (/tmp/vagrant-chef-1/chef-solo-1/cookbooks/artifact/providers/deploy.rb line 252) had an error: Chef::Exceptions::UserIDNotFound: cannot determine user id for 'myface', does the user exist on this system?
 
 Well we don't have the NameError exception anymore but we have a new problem. The user that we're attempting to deploy the artifact with is not found on the system. It's a good idea to avoid running your applications as root and to create a user to run them. Let's create the 'myface' user.
 
@@ -357,28 +336,32 @@ Open the default recipe for editing at `myface/recipes/default.rb` and define a 
 Save your work and re-run the Vagrant provisioner
 
     $ bundle exec vagrant provision
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
-    [Mon, 23 Jul 2012 22:14:05 +0000] INFO: *** Chef 10.12.0 ***
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Run List is [recipe[myface::default]]
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Run List expands to [myface::default]
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Starting Chef Run for localhost
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Running start handlers
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Start handlers complete.
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Processing group[myface] action create (myface::default line 10)
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Processing user[myface] action create (myface::default line 12)
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Processing artifact_deploy[myface] action deploy (myface::default line 18)
-    ...
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Chef Run complete in 0.492397486 seconds
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Running report handlers
-    [Mon, 23 Jul 2012 22:14:06 +0000] INFO: Report handlers complete
+    [2012-09-20T20:57:48+00:00] INFO: Chef Run complete in 27.94327067 seconds
+    [2012-09-20T20:57:48+00:00] INFO: Running report handlers
+    [2012-09-20T20:57:48+00:00] INFO: Report handlers complete
 
 You should now have your application code deployed to `/srv/myface/current`
 
     $ bundle exec vagrant ssh -c "ls -lah /srv/myface/current"
     lrwxrwxrwx 1 root root 26 Jul 23 22:14 /srv/myface/current -> /srv/myface/releases/1.0.0
+
+## Using Berkshelf to gather dependencies
+
+Let's take a quick pause to answer a question you may be wondering, "How Berkshelf was able to figure out I needed the artifact cookbook and where to get it?".
+
+When we generated the cookbook earlier on it created a file called `Berksfile` at the root of the myface cookbook. This file is read by Berkshelf's CLI and Vagrant plugin. Much like the Gemfile in Bundler, it describes the dependencies of your project.
+
+If you open the Berksfile that was generated for you, you will see just one line with one word
+
+    metadata
+
+If you are familiar with RubyGems and Bundler this is similar to the their `gemspec` keyword. Berkshelf will inspect the `metadata.rb` file of the cookbook and recursively download the dependencies of your cookbook and their dependencies (and so on). Berkshelf will search the Opscode community site for a cookbook matching the version constraint if you do not explicitly provide a source for the artifact cookbook in your Berksfile.
+
+If the version of the artifact cookbook wasn't available on the Opscode community site or you just want to host things locally an explicit source can be provided for where the cookbook can be found
+
+    cookbook 'artifact', '~> 0.10.1', chef_api: :knife
+
+This entry in your Berksfile would tell Berkshelf to look at at Chef API using your Knife configuration for authorization to download the artifact cookbook. Let's leave things as is for now for the purposes of this guide.
 
 ## The deployed application structure
 
@@ -472,31 +455,6 @@ re-run Vagrant provision and our attributes should replace our hardcoded strings
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
-    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: *** Chef 10.12.0 ***
-    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
-    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Run List is [recipe[myface::default]]
-    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Run List expands to [myface::default]
-    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Starting Chef Run for localhost
-    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Running start handlers
-    [Tue, 24 Jul 2012 01:27:09 +0000] INFO: Start handlers complete.
-    [Tue, 24 Jul 2012 01:27:09 +0000] ERROR: Running exception handlers
-    [Tue, 24 Jul 2012 01:27:09 +0000] ERROR: Exception handlers complete
-    [Tue, 24 Jul 2012 01:27:09 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
-    [Tue, 24 Jul 2012 01:27:09 +0000] FATAL: NoMethodError: undefined method `[]' for nil:NilClass
-
-Or at least it should have... There is currently a limitation with the way shims are implemented in Berkshelf. When a file is changed the changes are automatically picked up since we have already created the hard link. Unfortunately when a new file is added we hadn't created a hard link for it earlier on so we need to re-run berks install to get this file tracked inside Vagrant. I am currently working on a fix for this and will update this documentation when it has been implemented.
-
-    $ bundle exec berks install --shims
-    Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using artifact (0.10.2)
-    Shims written to: '/Users/reset/code/myface/cookbooks'
-
-Now re-run the provisioner and everything will be K
-
-    $ bundle exec vagrant provision
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
     [Tue, 24 Jul 2012 01:30:30 +0000] INFO: *** Chef 10.12.0 ***
     [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
     [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Run List is [recipe[myface::default]]
@@ -573,15 +531,6 @@ Now you should have a `metadata.rb` file that looks like this
     depends "artifact", "~> 0.10.1"
     depends "tomcat", "~> 0.11.0"
 
-Run the Berkshelf install command to get the Tomcat cookbook and all of it's dependent cookbooks. NOTE: Don't forget the `--shims` flag! This will ensure that the cookbooks are available to our virtual machine.
-
-    $ bundle exec berks install --shims
-    Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using artifact (0.10.2)
-    Installing tomcat (0.11.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Installing java (1.5.2) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Shims written to: '/Users/reset/code/myface/cookbooks'
-
 Next we will tell our default recipe to install Tomcat and configure it before deploying our application. Open the default recipe `myface/recipes/default.rb` for editing and add an `include_recipe` call before the resource definitions and save your work. You should have
 
     #
@@ -601,10 +550,7 @@ Next we will tell our default recipe to install Tomcat and configure it before d
 Re-run the Vagrant provisioner to install to your virtual machine
 
     $ bundle exec vagrant provision
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
-    [Tue, 24 Jul 2012 23:30:25 +0000] INFO: *** Chef 10.12.0 ***
+    [Tue, 24 Jul 2012 23:30:25 +0000] INFO: *** Chef 10.14.2 ***
     [Tue, 24 Jul 2012 23:30:26 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
     [Tue, 24 Jul 2012 23:30:26 +0000] INFO: Run List is [recipe[myface::default]]
     [Tue, 24 Jul 2012 23:30:26 +0000] INFO: Run List expands to [myface::default]
@@ -1115,28 +1061,13 @@ These attributes are documented in the [README for the MySQL cookbook](https://g
 We are nearly there but something is missing. Can you find it? Re-run the Vagrant provisioner and it would immediately become clear
 
     $ bundle exec vagrant provision
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
     ...
     [Sat, 28 Jul 2012 02:15:50 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
     [Sat, 28 Jul 2012 02:15:50 +0000] FATAL: ArgumentError: Cannot find a recipe matching database in cookbook myface
 
-If you recall an earlier section I had mentioned that adding a new file to your cookbook will not be picked up by Vagrant due to how shims are currently implemented in Berkshelf. This is something the Berkshelf team is actively working on to improve upon but until a fix has been created you need to re-install with shims
-
-    $ bundle exec berks install --shims
-    Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using artifact (0.10.2)
-    Using tomcat (0.11.0)
-    Using java (1.5.2)
-    Shims written to: '/Users/reset/code/myface/cookbooks'
-
 There is still one more problem. Let's re-run the Vagrant provisioner and see what's left
 
     $ bundle exec vagrant provision
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
     ...
     [Sat, 28 Jul 2012 02:19:11 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
     [Sat, 28 Jul 2012 02:19:11 +0000] FATAL: Chef::Exceptions::CookbookNotFound: Cookbook mysql not found. If you're loading mysql from another cookbook, make sure you configure the dependency in your metadata
@@ -1157,25 +1088,10 @@ Open up the `metadata.rb` file for editing and add "mysql" as a dependency
     depends "tomcat", "~> 0.11.0"
     depends "mysql", "~> 1.3.0"
 
-Now re-install berkshelf with shims to get the mysql cookbook and all of it's dependencies
-
-    $ bundle exec berks install --shims
-    Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using artifact (0.10.2)
-    Using tomcat (0.11.0)
-    Using java (1.5.2)
-    Installing mysql (1.3.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Installing openssl (1.0.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Installing build-essential (1.1.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Shims written to: '/Users/reset/code/myface/cookbooks'
-
 And if we re-run the Vagrant provisioner MySQL will now successfully be installed
 
     $ bundle exec vagrant provision
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
-    [Sat, 28 Jul 2012 02:40:22 +0000] INFO: *** Chef 10.12.0 ***
+    [Sat, 28 Jul 2012 02:40:22 +0000] INFO: *** Chef 10.14.2 ***
     [Sat, 28 Jul 2012 02:40:23 +0000] INFO: Setting the run_list to ["recipe[myface::database]", "recipe[myface::default]"] from JSON
     [Sat, 28 Jul 2012 02:40:23 +0000] INFO: Run List is [recipe[myface::database], recipe[myface::default]]
     [Sat, 28 Jul 2012 02:40:23 +0000] INFO: Run List expands to [myface::database, myface::default]
@@ -1237,22 +1153,6 @@ Your `metadata.rb` file should now look like
     depends "tomcat", "~> 0.11.0"
     depends "database", "~> 1.3.4"
 
-And re-run berks install with shims
-
-    $ bundle exec berks install --shims
-    Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    Using artifact (0.10.2)
-    Using tomcat (0.11.0)
-    Using java (1.5.2)
-    Installing database (1.3.4) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Using mysql (1.3.0)
-    Using openssl (1.0.0)
-    Using build-essential (1.1.0)
-    Installing postgresql (1.0.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Installing aws (0.100.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Installing xfs (1.0.0) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    Shims written to: '/Users/reset/code/myface/cookbooks'
-
 Now in the database recipe (`recipes/database.rb`) let's describe a database to be created for our application
 
     mysql_database "myface_dev" do
@@ -1269,9 +1169,6 @@ This resource will create a database in MySQL using the hash passed to the conne
 Now re-run the Vagrant provisioner to create the database
 
     $ bundle exec vagrant provision
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
     ...
     [Thu, 16 Aug 2012 23:25:45 +0000] INFO: Processing mysql_database[myface_dev] action create (myface::database line 17)
     [Thu, 16 Aug 2012 23:25:45 +0000] ERROR: Running exception handlers
