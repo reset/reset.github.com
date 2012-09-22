@@ -71,7 +71,7 @@ __note__: This guide requires the latest pre-release version of Berkshelf (0.5.0
 
 VirtualBox is a virtualization solution for creating virtual machines on your local computer. We will be using it to test your software and cookbooks inside a controlled environment.
 
-Download Virtualbox from the [Virtualbox Downloads Page](https://www.virtualbox.org/wiki/Downloads) and then install it. We will be using version 4.2.0 in this guide.
+Download Virtualbox from the [Virtualbox Downloads Page](https://www.virtualbox.org/wiki/Downloads) and then install it. We will be using version 4.2.1 in this guide.
 
 # Creating the Cookbook
 
