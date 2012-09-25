@@ -53,19 +53,13 @@ And install bundler for dependency resolution
 
     $ gem install bundler
 
-## Install Gecode
-
-Gecode is a requirement of Berkshelf as of version (0.4.0.rc1).
-
-    $ brew install gecode
-
 ## Install Berkshelf
 
 Like Bundler (or Maven) - Berkshelf is a dependency resolver and retriever for Chef Cookbooks.
 
-    $ gem install berkshelf -v 0.5.0.rc2
+    $ gem install berkshelf -v 0.6.0.beta1
 
-__note__: This guide requires the latest pre-release version of Berkshelf (0.5.0.rc2).
+__note__: This guide requires the latest beta version of Berkshelf (0.6.0.beta1).
 
 ## Install VirtualBox
 
@@ -114,7 +108,7 @@ Bundler will install all of the dependent RubyGems and garauntee that you have t
 
 __note:__ Since we are using a pre-release of Berkshelf you will need to open the Gemfile and replace the `gem 'berkshelf'` line with
 
-    gem 'berkshelf', '>= 0.5.0.rc2'
+    gem 'berkshelf', '>= 0.6.0.beta1'
 
 ## Starting your virtual machine
 
