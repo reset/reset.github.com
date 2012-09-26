@@ -763,12 +763,11 @@ Oops! This cryptic error message is telling us that we don't have a valid data b
 
 Open the cookbook's Vagrantfile and tell it where to find the data bags
 
-  config.vm.provision :chef_solo do |chef|
-    chef.cookbooks_path = ["cookbooks"]
-    chef.data_bags_path = "data_bags"
+    config.vm.provision :chef_solo do |chef|
+      chef.data_bags_path = "data_bags"
 
-    ...
-  end
+      ...
+    end
 
 Now reload your virtual machine to have it pick up the changes
 
