@@ -104,7 +104,7 @@ Switch into the directory of the newly created cookbook and install the Gem depe
     $ cd myface
     $ bundle install
 
-Bundler will install all of the dependent RubyGems and garauntee that you have the right versions.
+Bundler will install all of the dependent RubyGems and guarantee that you have the right versions.
 
 __note:__ Since we are using a pre-release of Berkshelf you will need to open the Gemfile and replace the `gem 'berkshelf'` line with
 
@@ -149,7 +149,7 @@ Start up your virtual machine
     [2012-09-20T20:32:21+00:00] INFO: Running report handlers
     [2012-09-20T20:32:21+00:00] INFO: Report handlers complete
 
-The default CentOS 6.3 Vagrant Box can be swapped with the OS of your choosing by opening the `Vagrantfile` inside your cookbook with your [favorite editor](http://www.sublimetext.com/2) and editting the values of the `config.vm.box` and `config.vm.box_url` attributes.
+The default CentOS 6.3 Vagrant Box can be swapped with the OS of your choosing by opening the `Vagrantfile` inside your cookbook with your [favorite editor](http://www.sublimetext.com/2) and editing the values of the `config.vm.box` and `config.vm.box_url` attributes.
 
     Vagrant::Config.run do |config|
       ...
@@ -246,7 +246,7 @@ You should have experienced a failure in the provisioning
 
 The important bit is the NameError. It appears that we do not have the resource `artifact_deploy` available on CentOS 6.3.
 
-You can also see what file the error occured in and on what line by looking at the Cookbook Trace section. In this case it's on line 10 in the default recipe of the myface cookbook.
+You can also see what file the error occurred in and on what line by looking at the Cookbook Trace section. In this case it's on line 10 in the default recipe of the myface cookbook.
 
     /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:10:in `from_file'
 
@@ -261,9 +261,9 @@ The metadata file is a lot like a RubyGems `gemspec`, it tells your Chef Server 
 * the name of a cookbook set by the `name` attribute
 * the version of a cookbook set by the `version` attribute
 * a list of dependent cookbooks and optionally their versions set by `depends` definitions
-* a list of conflicting cookbooks and opitonally their versions set by `conflicts` definitions
+* a list of conflicting cookbooks and optionally their versions set by `conflicts` definitions
 * the maintainer of the cookbook set by the `maintainer` attribute
-* the email adderess of the maintainer of the cookbook set by the `maintainer_email` attribute
+* the email address of the maintainer of the cookbook set by the `maintainer_email` attribute
 * license information set by the `license` attribute
 * a description of the cookbook set by the `description` and `long_description` attributes
 
@@ -385,7 +385,7 @@ This refactor is valuable for a few reasons
 * Allows an operator to customize the group and user name
 * Other cookbook authors can query the node about this information and use it in recipes of their own
 
-You should __always abstract your tunebles and constants into attributes__. Let's [DRY](http://en.wikipedia.org/wiki/Don't_repeat_yourself) up our code and replace these strings with attributes.
+You should __always abstract your tunables and constants into attributes__. Let's [DRY](http://en.wikipedia.org/wiki/Don't_repeat_yourself) up our code and replace these strings with attributes.
 
 Open the default recipe for editing at `myface/recipes/default.rb` and replace the "myface" string for user with `node[:myface][:user]` and the "myface" string for group with `node[:myface][:group]`. Now your default recipe should look like this
 
@@ -406,7 +406,7 @@ Open the default recipe for editing at `myface/recipes/default.rb` and replace t
       action :deploy
     end
 
-Within a recipe attributes are accessed on the [Node Object](http://wiki.opscode.com/display/chef/Recipes#Recipes-NodeObject). Attributes are accessed in a similar fashion to how you would interact with a Hash in Ruby. You can use a symbol or a string for keys in your attributes and they are interchangable, Chef will not complain and tell you that your attribute is not defined if you use a string when you initialized it with a symbol. Although you can use strings, it is __strongly recommended that you [use symbols for keys in Ruby](http://www.robertsosinski.com/2009/01/11/the-difference-between-ruby-symbols-and-strings/)__.
+Within a recipe attributes are accessed on the [Node Object](http://wiki.opscode.com/display/chef/Recipes#Recipes-NodeObject). Attributes are accessed in a similar fashion to how you would interact with a Hash in Ruby. You can use a symbol or a string for keys in your attributes and they are interchangeable, Chef will not complain and tell you that your attribute is not defined if you use a string when you initialized it with a symbol. Although you can use strings, it is __strongly recommended that you [use symbols for keys in Ruby](http://www.robertsosinski.com/2009/01/11/the-difference-between-ruby-symbols-and-strings/)__.
 
 So let's re-provision with Vagrant and see how our refactor went
 
@@ -425,7 +425,7 @@ So let's re-provision with Vagrant and see how our refactor went
     Chef never successfully completed! Any errors should be visible in the
     output above. Please fix your recipes so that they properly complete.
 
-Not so well... it sesems that we have an undefined method somewhere!? 
+Not so well... it seems that we have an undefined method somewhere!? 
 
     [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
     [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: NoMethodError: undefined method `[]' for nil:NilClass
@@ -508,7 +508,7 @@ Always use the right resource for the job and avoid using the [Script resource](
 
 # Configuring the application server
 
-Open up the `metadata.rb` file in our cookbook and add a depenency for Tomcat below the artifact dependency (note: order does not matter)
+Open up the `metadata.rb` file in our cookbook and add a dependency for Tomcat below the artifact dependency (note: order does not matter)
 
     depends "tomcat", "~> 0.11.0"
 
@@ -994,7 +994,7 @@ And if we run our Vagrant provisioner we should see no changes
 
 # Configuring the database server
 
-Version 1.0.0 of Myface is just a web application that is serving up a static page - it doesn't do much. Well version 2.0.0 of Myface is ready and it requires a presistant database to hold account information and the hordes of cats that your users are going to be posting. We're going to cover installing and configuring MySQL in this section but the steps are similar enough if your application requires another persistant datastore like PostgreSQL.
+Version 1.0.0 of Myface is just a web application that is serving up a static page - it doesn't do much. Well version 2.0.0 of Myface is ready and it requires a persistent database to hold account information and the hordes of cats that your users are going to be posting. We're going to cover installing and configuring MySQL in this section but the steps are similar enough if your application requires another persistent datastore like PostgreSQL.
 
 ## Creating the database recipe
 
@@ -1124,13 +1124,13 @@ Well we have MySQL installed but we don't have a database. In the next section w
 
 ## Creating a database with the Database cookbook
 
-Opscode provides an amazing utility cookbook that exposes a number of Light-weight Resource Providers (LWRP) for manipulating persistant databases like MySQL and PostgreSQL. To get access to these LWRPs all we need to do is include the 'database' cookbook in the metadata of our own.
+Opscode provides an amazing utility cookbook that exposes a number of Light-weight Resource Providers (LWRP) for manipulating persistent databases like MySQL and PostgreSQL. To get access to these LWRPs all we need to do is include the 'database' cookbook in the metadata of our own.
 
 Add the 'database' cookbook as a dependency in our `metadata.rb` file
 
   depends "database", "~> 1.3.4"
 
-Because the database cookbook has it's own requirement for MySQL we can also go ahead and remove our dependncy on the MySQL cookbook. We will inherit the dependency by the databse cookbook since it has it's own constraint defined.
+Because the database cookbook has it's own requirement for MySQL we can also go ahead and remove our dependency on the MySQL cookbook. We will inherit the dependency by the database cookbook since it has it's own constraint defined.
 
 Your `metadata.rb` file should now look like
 
@@ -1277,7 +1277,7 @@ Run the vagrant provisioner to pickup the changes
 
 When we wrote the database recipe the database name, user, and the user's password were all hardcoded directly into the recipe. This is a bad pattern for a few reasons.
 
-Security. Chef attributes are indexed and are publically available to all API clients. This means that your database credentials are easy found if your Chef server is compromised. And, since the database is nicely marked with the recipe named "myface::database", the hostname and ipaddress are effortlessly found by a potential attacker.
+Security. Chef attributes are indexed and are publicly available to all API clients. This means that your database credentials are easy found if your Chef server is compromised. And, since the database is nicely marked with the recipe named "myface::database", the hostname and ipaddress are effortlessly found by a potential attacker.
 
 Keeping your code DRY. It's easy to make mistakes as a cookbook author when things that could be extracted into configurable attributes are littered throughout multiple recipes. An author needs to make good use of his editor's find and replace function if he hopes to reconfigure his application properly.
 
