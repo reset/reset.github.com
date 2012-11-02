@@ -353,9 +353,9 @@ If you are familiar with RubyGems and Bundler this is similar to the their `gems
 
 If the version of the artifact cookbook wasn't available on the Opscode community site or you just want to host things locally an explicit source can be provided for where the cookbook can be found
 
-    cookbook 'artifact', '~> 0.10.1', chef_api: :knife
+    cookbook 'artifact', '~> 0.10.1', chef_api: :config
 
-This entry in your Berksfile would tell Berkshelf to look at at Chef API using your Knife configuration for authorization to download the artifact cookbook. Let's leave things as is for now for the purposes of this guide.
+This entry in your Berksfile would tell Berkshelf to look at at Chef API using your Berkshelf configuration for authorization to download the artifact cookbook. Let's leave things as is for now for the purposes of this guide.
 
 ## The deployed application structure
 
