@@ -57,9 +57,9 @@ And install bundler for dependency resolution
 
 Like Bundler (or Maven) - Berkshelf is a dependency resolver and retriever for Chef Cookbooks.
 
-    $ gem install berkshelf -v 1.0.0.rc1
+    $ gem install berkshelf
 
-__note__: This guide requires the latest beta version of Berkshelf (1.0.0.rc1).
+__note__: This guide requires the latest beta version of Berkshelf (1.0.0).
 
 ## Install VirtualBox
 
@@ -108,7 +108,7 @@ Bundler will install all of the dependent RubyGems and guarantee that you have t
 
 __note:__ Since we are using a pre-release of Berkshelf you will need to open the Gemfile and replace the `gem 'berkshelf'` line with
 
-    gem 'berkshelf', '>= 1.0.0.rc1'
+    gem 'berkshelf', '>= 1.0.0'
 
 ## Starting your virtual machine
 
