@@ -106,10 +106,6 @@ Switch into the directory of the newly created cookbook and install the Gem depe
 
 Bundler will install all of the dependent RubyGems and guarantee that you have the right versions.
 
-__note:__ Since we are using a pre-release of Berkshelf you will need to open the Gemfile and replace the `gem 'berkshelf'` line with
-
-    gem 'berkshelf', '>= 1.0.0'
-
 ## Starting your virtual machine
 
 A `Vagrantfile` was generated for you with a boilerplate configuration that should be suitable for our needs. The Vagrantfile is configured to download and boot a CentOS 6.3 Vagrant Box and provision it with `chef-solo`. I recommend sticking with these defaults while you are working through this guide.
