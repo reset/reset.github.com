@@ -95,7 +95,7 @@ Let's begin by generating a new cookbook for our application. We'll call it "myf
 
 This will create a skeleton for a new cookbook named 'myface' in the directory `myface` in your current working directory. The skeleton will contain some additional files to get you started iterating quickly with Berkshelf.
 
-Passing the additional `--vagrant`, `--git`, and `--foodcritic` options will generate additional boiler plate files for your cookbook if you intend on working with Vagrant, Git, and lint testing with Foodcritic. We will be going over these topics in this guide so make sure you pass those options!
+Passing the additional `--vagrant`, `--git`, and `--foodcritic` options will generate additional boilerplate files for your cookbook if you intend on working with Vagrant, Git, and lint testing with Foodcritic. We will be going over these topics in this guide so make sure you pass those options!
 
 # Prepare your virtual environment
 
@@ -171,7 +171,7 @@ __note__: If you destroy VM make sure to recreate it with `bundle exec vagrant u
 
 Now that we've got a barebones cookbook for our hot new social networking application, myface, let's make our first cookbook change and deploy our application with Artifact Deploy. Artifact Deploy is a Light-weight Resource and Provider (LWRP) that comes bundled with the [Artifact Cookbook](https://github.com/riotgames/artifact-cookbook).
 
-In Chef, a resource represents a piece of system state and a provider is the underlying implementation which brings the resource into the desired state. Chef comes with a number of Resources and Providers for you to use out of the box but you can create your own by generating a cookbook that contains an LWRP and including it into the metadata of a another cookbook.
+In Chef, a resource represents a piece of system state and a provider is the underlying implementation which brings the resource into the desired state. Chef comes with a number of Resources and Providers for you to use out of the box but you can create your own by generating a cookbook that contains an LWRP and including it into the metadata of another cookbook.
 
 Open the default recipe for editing at `myface/recipes/default.rb` and add following code block.
 
@@ -246,7 +246,7 @@ You can also see what file the error occurred in and on what line by looking at 
 
     /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:10:in `from_file'
 
-We actually don't have the `artifact_deploy` resource at all; it's not part of Chef or the only cookbook available to our Chef Client. This is because we haven't told our cookbook about the Artifact Cookbook which contains the Light-weight Resource and Provider (LWRP) that provides `artifact_deploy` to our recipes.
+We actually don't have the `artifact_deploy` resource at all; it's not part of Chef or the only cookbook available to our Chef Client. This is because we haven't told our cookbook about the Artifact cookbook which contains the Light-weight Resource and Provider (LWRP) that provides `artifact_deploy` to our recipes.
 
 ## Working with cookbook metadata
 
@@ -271,7 +271,7 @@ Open up the `metadata.rb` file in our cookbook and add the following line of cod
 
     depends "artifact", "~> 0.10.7"
 
-This tells the Chef server and clients that the myface cookbook depends on the artifact cookbook. We've also provided a version constraint to the dependency which ensures that other cookbook authors or operators are using a version of the artifact cookbook that we approve works with our cookbook. You should __always set resonable version constraints for your dependencies__ to save your operators and fellow cookbook authors from wanting to [light you on fire](http://24.media.tumblr.com/tumblr_m7fpxfkHM81rzupqxo1_500.png).
+This tells the Chef server and clients that the myface cookbook depends on the artifact cookbook. We've also provided a version constraint to the dependency which ensures that other cookbook authors or operators are using a version of the artifact cookbook that we approve works with our cookbook. You should __always set reasonable version constraints for your dependencies__ to save your operators and fellow cookbook authors from wanting to [light you on fire](http://24.media.tumblr.com/tumblr_m7fpxfkHM81rzupqxo1_500.png).
 
 Cookbooks follow the [SemVer](http://semver.org) versioning scheme and accept constraints containing anyone of the approved constraint operators. In this case we've used the optimistic operator `~>` to tell our cookbook that we allow any version of artifact that is greater than 0.10.7 but _not_ 0.11.0 or higher. This means we accept 0.10.7, 0.10.8, or 0.10.30002, etc.
 
@@ -463,7 +463,7 @@ Success! You'll notice that your Chef run went a lot faster than the first time 
 
 # Idempotent recipes
 
-You should __always write idempotent recipes__ that execute cleanly on their very first run and perform no work if no work needs to be done. You can do this by using selecting the right resource for the job or creating your own by writing a Light-weight Resource Provider (LWRP). If you've been working with Chef and reading cookbooks authored by people new to Chef then you've probably seen something like this
+You should __always write idempotent recipes__ that execute cleanly on their very first run and perform no work if no work needs to be done. You can do this by selecting the right resource for the job or creating your own by writing a Light-weight Resource Provider (LWRP). If you've been working with Chef and reading cookbooks authored by people new to Chef then you've probably seen something like this
 
     bash "download-and-extract" do
       code <<-EOH
@@ -496,7 +496,7 @@ The problem is that this resource definition is not idempotent. This resource wi
       not_if { File.exists?("/srv/myface/releases/1.0.0") }
     end
 
-But as the logic gets more complex for deploying an artifact the conditional execution block gets grows in complexity, as well. 
+But as the logic for deploying an artifact grows more complex, the conditional execution block also grows in complexity. 
 
 _A Chef recipe is not a collection of procedurally executing bash scripts_
 
@@ -637,7 +637,7 @@ Cookbooks should have entry points exposed to operators and these entry points s
 
 # Wiring up Tomcat
 
-Since we're developing a web app and running it in Tomcat we're going to need to know the address to put into our browser to check out Myface. Tomcat doesn't typically run on port 80 so we're going to need to figure out what port Tomcat is running on. It's a good practice to make port or memory settings for your applications into tunable attributes, and lucky for us, the fine folks over at Opscode who developed this Tomcat cookbook follow such best practices.
+Since we're developing a web app and running it in Tomcat we're going to need to know the URL to put into our browser to check out Myface. Tomcat doesn't typically run on port 80 so we're going to need to figure out what port Tomcat is running on. It's a good practice to make port or memory settings for your applications into tunable attributes, and lucky for us, the fine folks over at Opscode who developed this Tomcat cookbook follow such best practices.
 
 If we check the [Tomcat cookbook's documentation](https://github.com/opscode-cookbooks/tomcat/blob/master/README.md) we see that there is an _Attributes_ section that lists some of the important attributes and what they do. This information is also readily available by reading the [attributes file](https://github.com/opscode-cookbooks/tomcat/blob/master/attributes/default.rb) of the Tomcat cookbook. By reading the documentation we see that Tomcat will be configured to run on port `8080` by default.
 
