@@ -59,7 +59,13 @@ Like Bundler (or Maven) - Berkshelf is a dependency resolver and retriever for C
 
     $ gem install berkshelf
 
-__note__: This guide requires the latest beta version of Berkshelf (1.0.0).
+__note__: This guide requires Berkshelf (1.0.0) or later.
+
+## Install Foodcritic
+
+[Foodcritic](http://acrmp.github.com/foodcritic/) is linting tool for Chef Cookbooks that helps you find problems and improve your code.
+
+    $ gem install foodcritic
 
 ## Install VirtualBox
 
@@ -67,11 +73,21 @@ VirtualBox is a virtualization solution for creating virtual machines on your lo
 
 Download Virtualbox from the [Virtualbox Downloads Page](https://www.virtualbox.org/wiki/Downloads) and then install it. We will be using version 4.2.1 in this guide.
 
+## Install Vagrant
+
+[Vagrant](http://www.vagrantup.com/) provides easy to configure, reproducible, and portable work environments built on top of VirtualBox, VMWare, AWS, or any other providers. We will be using VirtualBox but you can easily switch one of the others.
+
+Vagrant can be installed by [downloading](http://downloads.vagrantup.com/) the installer for your operating system and using standard procedures to install that package. We will be using version 1.0.7.
+
+You also need to install Berkshelf into Vagrant (skip if you installed Vagrant using Rubygems)
+
+    $ vagrant gem install berkshelf
+
 # Creating the Cookbook
 
 Let's begin by generating a new cookbook for our application. We'll call it "myface" to match the name of our web application.
 
-    $ berks cookbook myface --vagrant --git --foodcritic
+    $ berks cookbook myface --foodcritic
           create  myface/files/default
           create  myface/templates/default
           create  myface/attributes
@@ -91,11 +107,11 @@ Let's begin by generating a new cookbook for our application. We'll call it "myf
           create  myface/Thorfile
           create  myface/Gemfile
           create  myface/Vagrantfile
-    Using myface (0.0.1) at path: '/Users/reset/code/myface'
+    Using myface (0.1.0) at path: '/Users/reset/code/myface'
 
 This will create a skeleton for a new cookbook named 'myface' in the directory `myface` in your current working directory. The skeleton will contain some additional files to get you started iterating quickly with Berkshelf.
 
-Passing the additional `--vagrant`, `--git`, and `--foodcritic` options will generate additional boilerplate files for your cookbook if you intend on working with Vagrant, Git, and lint testing with Foodcritic. We will be going over these topics in this guide so make sure you pass those options!
+Passing the additional `--foodcritic` option will generate additional boilerplate files for your cookbook if you intend on lint testing with Foodcritic. We will be going over this topic in this guide so make sure you pass this option!
 
 # Prepare your virtual environment
 
@@ -186,7 +202,7 @@ Open the default recipe for editing at `myface/recipes/default.rb` and add follo
 
 Save your work.
 
-Next we will re-provision your virtual machine by running Vagrant's __provision__command. Provision will re-run the Chef-Solo provisioner. This is the same provisioner that ran earlier when we started our virtual machine.
+Next we will re-provision your virtual machine by running Vagrant's __provision__ command. Provision will re-run the Chef-Solo provisioner. This is the same provisioner that ran earlier when we started our virtual machine.
 
 Through the magic of the Berkshelf Vagrant plugin - Vagrant will automatically make any changes you make to your cookbook and all of your cookbook's dependencies available to the virtual machine.
 
@@ -712,7 +728,7 @@ Open this file in your favorite editor and add the following JSON for the new us
 
     {
       "id": "tomcat",
-      "password": "secret",
+      "password": "tomcat",
       "roles": [
         "manager"
       ]
@@ -1140,6 +1156,7 @@ Your `metadata.rb` file should now look like
 
     depends "artifact", "~> 0.10.1"
     depends "tomcat", "~> 0.11.0"
+    depends "mysql", "~> 1.3.0"
     depends "database", "~> 1.3.4"
 
 Now in the database recipe (`recipes/database.rb`) let's describe a database to be created for our application
