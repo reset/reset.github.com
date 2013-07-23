@@ -26,8 +26,7 @@ Git is a distributed version control system that is used heavily by the Chef, an
 
     $ brew install git
     $ git --version
-    git version 1.7.11.2
-    hub version 1.8.1
+    git version 1.8.3.2
 
 > Note: Git is required even if you do not plan to store your cookbook or application in Git.
 
@@ -41,13 +40,13 @@ This will cover installing Ruby with a simple, but powerful, Ruby version manage
 
 ## Install Ruby
 
-Ruby 1.9 is a requirement of Berkshelf. We will be using `1.9.3-p194` which is the latest patch level of 1.9.3.
+Ruby 1.9 is a requirement of Berkshelf. We will be using `1.9.3-p448` which is the latest patch level of 1.9.3.
 
-    $ rbenv install 1.9.3-p194
+    $ rbenv install 1.9.3-p448
 
-Set Ruby 1.9.3-p194 as your default Ruby version
+Set Ruby 1.9.3-p448 as your default Ruby version
 
-    $ rbenv global 1.9.3-p194
+    $ rbenv global 1.9.3-p448
 
 And install bundler for dependency resolution
 
@@ -59,7 +58,7 @@ Like Bundler (or Maven) - Berkshelf is a dependency resolver and retriever for C
 
     $ gem install berkshelf
 
-__note__: This guide requires Berkshelf (1.0.0) or later.
+__note__: This guide requires Berkshelf (2.0.7) or later.
 
 ## Install Foodcritic
 
@@ -71,17 +70,19 @@ __note__: This guide requires Berkshelf (1.0.0) or later.
 
 VirtualBox is a virtualization solution for creating virtual machines on your local computer. We will be using it to test your software and cookbooks inside a controlled environment.
 
-Download Virtualbox from the [Virtualbox Downloads Page](https://www.virtualbox.org/wiki/Downloads) and then install it. We will be using version 4.2.1 in this guide.
+Download Virtualbox from the [Virtualbox Downloads Page](https://www.virtualbox.org/wiki/Downloads) and then install it. We will be using version 4.2.6 in this guide.
 
 ## Install Vagrant
 
 [Vagrant](http://www.vagrantup.com/) provides easy to configure, reproducible, and portable work environments built on top of VirtualBox, VMWare, AWS, or any other providers. We will be using VirtualBox but you can easily switch one of the others.
 
-Vagrant can be installed by [downloading](http://downloads.vagrantup.com/) the installer for your operating system and using standard procedures to install that package. We will be using version 1.0.7.
+Vagrant can be installed by [downloading](http://downloads.vagrantup.com/) the installer for your operating system and using standard procedures to install that package. We will be using version 1.2.4.
 
 You also need to install Berkshelf into Vagrant (skip if you installed Vagrant using Rubygems)
 
-    $ vagrant gem install berkshelf
+    $ vagrant plugin install vagrant-berkshelf
+    Installing the 'vagrant-berkshelf' plugin. This can take a few minutes...
+    Installed the plugin 'vagrant-berkshelf (1.3.3)'!
 
 # Creating the Cookbook
 
@@ -101,13 +102,12 @@ Let's begin by generating a new cookbook for our application. We'll call it "myf
           create  myface/LICENSE
           create  myface/README.md
           create  myface/Berksfile
+          create  myface/Thorfile
           create  myface/chefignore
           create  myface/.gitignore
              run  git init from "./myface"
-          create  myface/Thorfile
           create  myface/Gemfile
           create  myface/Vagrantfile
-    Using myface (0.1.0) at path: '/Users/reset/code/myface'
 
 This will create a skeleton for a new cookbook named 'myface' in the directory `myface` in your current working directory. The skeleton will contain some additional files to get you started iterating quickly with Berkshelf.
 
@@ -244,10 +244,10 @@ You should have experienced a failure in the provisioning
       3:  # Recipe:: default
       4:  #
       5:  # Copyright (C) 2012 YOUR_NAME
-      6:  # 
+      6:  #
       7:  # All rights reserved - Do Not Redistribute
       8:  #
-      9:  
+      9:
 
     [2012-09-20T20:39:04+00:00] ERROR: Running exception handlers
     [2012-09-20T20:39:04+00:00] ERROR: Exception handlers complete
@@ -266,7 +266,7 @@ We actually don't have the `artifact_deploy` resource at all; it's not part of C
 
 ## Working with cookbook metadata
 
-To tell our myface cookbook about the Artifact cookbook we need to modify the `metadata.rb` file at the root of our cookbook's directory. This is an often overlooked file to new Chef developers but it is one of the most important. 
+To tell our myface cookbook about the Artifact cookbook we need to modify the `metadata.rb` file at the root of our cookbook's directory. This is an often overlooked file to new Chef developers but it is one of the most important.
 
 The metadata file is a lot like a RubyGems `gemspec`, it tells your Chef Server some important things about your cookbook such as:
 
@@ -389,7 +389,7 @@ This deploy structure was made popular by [Capistrano](https://github.com/capist
 
 If you've got a good eye for good development practices you might have noticed that we repeated ourself quite a bit in our default recipe, specifically when referencing the group and user. We used the string "myface" in our first pass to identify the group and user name and also needed to give that to the artifact_deploy resource.
 
-It's very common to need to provide repetitive data to resources in a Chef recipe and a good idea to abstract these into an a primitive that Chef calls an [Attribute](http://wiki.opscode.com/display/chef/Attributes). An attribute holds configurable and searchable node data. 
+It's very common to need to provide repetitive data to resources in a Chef recipe and a good idea to abstract these into an a primitive that Chef calls an [Attribute](http://wiki.opscode.com/display/chef/Attributes). An attribute holds configurable and searchable node data.
 
 This refactor is valuable for a few reasons
 
@@ -437,7 +437,7 @@ So let's re-provision with Vagrant and see how our refactor went
     Chef never successfully completed! Any errors should be visible in the
     output above. Please fix your recipes so that they properly complete.
 
-Not so well... it seems that we have an undefined method somewhere!? 
+Not so well... it seems that we have an undefined method somewhere!?
 
     [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
     [Mon, 23 Jul 2012 23:37:07 +0000] FATAL: NoMethodError: undefined method `[]' for nil:NilClass
@@ -448,7 +448,7 @@ Well, yes and no. This cryptic error message is a very common and people new to 
 
 Attributes can be set and accessed from a [Node Object](http://wiki.opscode.com/display/chef/Recipes#Recipes-NodeObject) and also within attribute files.
 
-Create a new file that sets values for the missing attributes and save it as `myface/attributes/default.rb`. 
+Create a new file that sets values for the missing attributes and save it as `myface/attributes/default.rb`.
 
     default[:myface][:user] = "myface"
     default[:myface][:group] = "myface"
@@ -512,7 +512,7 @@ The problem is that this resource definition is not idempotent. This resource wi
       not_if { File.exists?("/srv/myface/releases/1.0.0") }
     end
 
-But as the logic for deploying an artifact grows more complex, the conditional execution block also grows in complexity. 
+But as the logic for deploying an artifact grows more complex, the conditional execution block also grows in complexity.
 
 _A Chef recipe is not a collection of procedurally executing bash scripts_
 
@@ -544,7 +544,7 @@ Next we will tell our default recipe to install Tomcat and configure it before d
     # Recipe:: default
     #
     # Copyright (C) 2012 YOUR_NAME
-    # 
+    #
     # All rights reserved - Do Not Redistribute
     #
 
@@ -743,7 +743,7 @@ Open the default recipe for editing at `myface/recipes/default.rb` and include t
     # Recipe:: default
     #
     # Copyright (C) 2012 YOUR_NAME
-    # 
+    #
     # All rights reserved - Do Not Redistribute
     #
 
@@ -894,7 +894,7 @@ Tomcat will automatically pick up our application and load it after the symlink 
 
 And now when we visit the [Tomcat Manager](http://localhost:9090/manager/html) there should be three applications in the applications list. The new application should be mounted at path /myface.
 
-We can now visit our new (and unimpressive) application [in our browser](http://localhost:9090/myface)    
+We can now visit our new (and unimpressive) application [in our browser](http://localhost:9090/myface)
 
 # A bit more refactoring
 
@@ -909,7 +909,7 @@ Open the default attributes file for editing `myface/attributes/default.rb` and 
     # Attribute:: default
     #
     # Copyright (C) 2012 Jamie Winsor
-    # 
+    #
     # All rights reserved - Do Not Redistribute
     #
 
@@ -947,7 +947,7 @@ It's good to review the entire output of Vagrant to ensure no additional work wa
 
 ## Configurable artifact version and URL
 
-Since we're already in the spirit of refactoring let's hit the last remaining problem. What if the location of our artifact was to change or we wanted to deploy a different version? Well right now you'd need to make a change to your cookbook. While this doesn't sound like much it is actually a big problem - you'd need to increment the version of your cookbook and re-publish it to the community site or your Chef Server. 
+Since we're already in the spirit of refactoring let's hit the last remaining problem. What if the location of our artifact was to change or we wanted to deploy a different version? Well right now you'd need to make a change to your cookbook. While this doesn't sound like much it is actually a big problem - you'd need to increment the version of your cookbook and re-publish it to the community site or your Chef Server.
 
 You wouldn't hardcode the location of your database into your application code, would you?
 
@@ -962,7 +962,7 @@ Start by creating two new default attributes in the default attributes file (`my
     # Attribute:: default
     #
     # Copyright (C) 2012 Jamie Winsor
-    # 
+    #
     # All rights reserved - Do Not Redistribute
     #
 
@@ -977,7 +977,7 @@ And just like we did for the deploy_to attribute, replace the values in the defa
     # Recipe:: default
     #
     # Copyright (C) 2012 YOUR_NAME
-    # 
+    #
     # All rights reserved - Do Not Redistribute
     #
 
@@ -1026,7 +1026,7 @@ And include the MySQL cookbooks's server recipe.
     # Recipe:: database
     #
     # Copyright (C) 2012 YOUR_NAME
-    # 
+    #
     # All rights reserved - Do Not Redistribute
     #
 
