@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Vial Studios 
+title: Vial Studios
 header: Contact
 ---
 {% include JB/setup %}
