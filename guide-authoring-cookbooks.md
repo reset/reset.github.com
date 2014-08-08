@@ -84,6 +84,12 @@ You also need to install Berkshelf into Vagrant (skip if you installed Vagrant u
     Installing the 'vagrant-berkshelf' plugin. This can take a few minutes...
     Installed the plugin 'vagrant-berkshelf (1.3.3)'!
 
+It's also a great idea to install the `vagrant-omnibus` plugin which lets you specify the version of Chef you want to use.
+
+    $ vagrant plugin install vagrant-omnibus
+    Installing the 'vagrant-omnibus' plugin. This can take a few minutes...
+    Installed the plugin 'vagrant-omnibus (1.1.0)'!
+
 # Creating the Cookbook
 
 Let's begin by generating a new cookbook for our application. We'll call it "myface" to match the name of our web application.
@@ -124,55 +130,73 @@ Bundler will install all of the dependent RubyGems and guarantee that you have t
 
 ## Starting your virtual machine
 
-A `Vagrantfile` was generated for you with a boilerplate configuration that should be suitable for our needs. The Vagrantfile is configured to download and boot a CentOS 6.3 Vagrant Box and provision it with `chef-solo`. I recommend sticking with these defaults while you are working through this guide.
+A `Vagrantfile` was generated for you with a boilerplate configuration that should be suitable for our needs. The default Vagrantfile is configured to download and boot a CentOS 6.3 Vagrant Box and provision it with `chef-solo`.
 
-Start up your virtual machine
+Let's update the Vagrant file to pull down a more up to date box and configure a more recent version of chef.
 
-    $ bundle exec vagrant up
-    [default] Importing base box 'Berkshelf-CentOS-6.3-x86_64-minimal'...
-    [default] Matching MAC address for NAT networking...
-    [default] Clearing any previously set forwarded ports...
-    [default] Fixed port collision for 22 => 2222. Now on port 2200.
-    [default] Forwarding ports...
-    [default] -- 22 => 2200 (adapter 1)
-    [Berkshelf] installing cookbooks...
-    [Berkshelf] Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    [default] Creating shared folders metadata...
-    [default] Clearing any previously set network interfaces...
-    [default] Preparing network interfaces based on configuration...
-    [default] Booting VM...
-    [default] Waiting for VM to boot. This can take a few minutes.
-    [default] VM booted and ready for use!
-    [default] Configuring and enabling network interfaces...
-    [default] Mounting shared folders...
-    [default] -- v-root: /vagrant
-    [default] -- v-csc-1: /tmp/vagrant-chef-1/chef-solo-1/cookbooks
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
-    [2012-09-20T20:32:21+00:00] INFO: *** Chef 10.14.2 ***
-    [2012-09-20T20:32:21+00:00] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
-    [2012-09-20T20:32:21+00:00] INFO: Run List is [recipe[myface::default]]
-    [2012-09-20T20:32:21+00:00] INFO: Run List expands to [myface::default]
-    [2012-09-20T20:32:21+00:00] INFO: Starting Chef Run for myface-berkshelf
-    [2012-09-20T20:32:21+00:00] INFO: Running start handlers
-    [2012-09-20T20:32:21+00:00] INFO: Start handlers complete.
-    [2012-09-20T20:32:21+00:00] INFO: Chef Run complete in 0.026849441 seconds
-    [2012-09-20T20:32:21+00:00] INFO: Running report handlers
-    [2012-09-20T20:32:21+00:00] INFO: Report handlers complete
+    Vagrant.configure("2") do |config|
 
-The default CentOS 6.3 Vagrant Box can be swapped with the OS of your choosing by opening the `Vagrantfile` inside your cookbook with your [favorite editor](http://www.sublimetext.com/2) and editing the values of the `config.vm.box` and `config.vm.box_url` attributes.
+      # All Vagrant configuration is done here. The most common configuration
+      # options are documented and commented below. For a complete reference,
+      # please see the online documentation at vagrantup.com.
 
-    Vagrant::Config.run do |config|
-      ...
+      config.vm.hostname = "myface-berkshelf"
 
-      config.vm.box = "Berkshelf-CentOS-6.3-x86_64-minimal"
-      config.vm.box_url = "https://dl.dropbox.com/u/31081437/Berkshelf-CentOS-6.3-x86_64-minimal.box"
+      config.vm.box = "misheska-centos6.4"
+      config.vm.box_url = "https://www.dropbox.com/s/y733o4ifkowc1w0/misheska-centos64.box"
 
+      config.omnibus.chef_version = "11.6.0"
+
+      # Assign this VM to a host-only network IP, allowing you to access it
+      # via the IP. Host-only networks can talk to the host machine as well as
+      # any other machines on the same network, but cannot be accessed (through this
+      # network interface) by any external networks.
+      config.vm.network :private_network, ip: "33.33.33.10"
       ...
     end
 
 Check the full [Vagrant Documentation](http://vagrantup.com/v1/docs/index.html) for future reference.
+
+
+Start up your virtual machine
+
+    $ bundle exec vagrant up
+    Bringing machine 'default' up with 'virtualbox' provider...
+    [default] Importing base box 'misheska-centos6.4'...
+    [default] Matching MAC address for NAT networking...
+    [default] Setting the name of the VM...
+    [default] Clearing any previously set forwarded ports...
+    [Berkshelf] Using myface (0.1.0)
+    [default] Fixed port collision for 22 => 2222. Now on port 2200.
+    [default] Creating shared folders metadata...
+    [default] Clearing any previously set network interfaces...
+    [default] Preparing network interfaces based on configuration...
+    [default] Forwarding ports...
+    [default] -- 22 => 2200 (adapter 1)
+    [default] Booting VM...
+    [default] Waiting for VM to boot. This can take a few minutes.
+    [default] VM booted and ready for use!
+    [default] Setting hostname...
+    [default] Configuring and enabling network interfaces...
+    [default] Mounting shared folders...
+    [default] -- /vagrant
+    [default] -- /tmp/vagrant-chef-1/chef-solo-1/cookbooks
+    [default] Installing Chef 11.6.0 Omnibus package...
+    [default] Running provisioner: chef_solo...
+    Generating chef JSON and uploading...
+    Running chef-solo...
+    [2013-07-24T12:12:24-07:00] INFO: Forking chef instance to converge...
+    [2013-07-24T12:12:24-07:00] INFO: *** Chef 11.6.0 ***
+    [2013-07-24T12:12:24-07:00] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [2013-07-24T12:12:24-07:00] INFO: Run List is [recipe[myface::default]]
+    [2013-07-24T12:12:24-07:00] INFO: Run List expands to [myface::default]
+    [2013-07-24T12:12:24-07:00] INFO: Starting Chef Run for myface-berkshelf
+    [2013-07-24T12:12:24-07:00] INFO: Running start handlers
+    [2013-07-24T12:12:24-07:00] INFO: Start handlers complete.
+    [2013-07-24T12:12:24-07:00] INFO: Chef Run complete in 0.01797156 seconds
+    [2013-07-24T12:12:24-07:00] INFO: Running report handlers
+    [2013-07-24T12:12:24-07:00] INFO: Report handlers complete
+
 
 If at anytime your virtual machine becomes unstable or if you'd like to start over you can destroy your virtual machine with one command
 
@@ -210,57 +234,68 @@ Through the magic of the Berkshelf Vagrant plugin - Vagrant will automatically m
 
 You should have experienced a failure in the provisioning
 
-    [Berkshelf] installing cookbooks...
-    [Berkshelf] Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
-    [2012-09-20T20:39:03+00:00] INFO: *** Chef 10.14.2 ***
-    [2012-09-20T20:39:04+00:00] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
-    [2012-09-20T20:39:04+00:00] INFO: Run List is [recipe[myface::default]]
-    [2012-09-20T20:39:04+00:00] INFO: Run List expands to [myface::default]
-    [2012-09-20T20:39:04+00:00] INFO: Starting Chef Run for myface-berkshelf
-    [2012-09-20T20:39:04+00:00] INFO: Running start handlers
-    [2012-09-20T20:39:04+00:00] INFO: Start handlers complete.
+    [Berkshelf] Using myface (0.1.0)
+    [default] Chef 11.6.0 Omnibus package is already installed.
+    [default] Running provisioner: chef_solo...
+    Generating chef JSON and uploading...
+    Running chef-solo...
+    [2013-07-24T12:18:22-07:00] INFO: Forking chef instance to converge...
+    [2013-07-24T12:18:22-07:00] INFO: *** Chef 11.6.0 ***
+    [2013-07-24T12:18:22-07:00] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
+    [2013-07-24T12:18:22-07:00] INFO: Run List is [recipe[myface::default]]
+    [2013-07-24T12:18:22-07:00] INFO: Run List expands to [myface::default]
+    [2013-07-24T12:18:22-07:00] INFO: Starting Chef Run for myface-berkshelf
+    [2013-07-24T12:18:22-07:00] INFO: Running start handlers
+    [2013-07-24T12:18:22-07:00] INFO: Start handlers complete.
+
 
     ================================================================================
+
     Recipe Compile Error in /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb
+
     ================================================================================
 
     NameError
+
     ---------
-    Cannot find a resource for artifact_deploy on centos version 6.3
+
+    Cannot find a resource for artifact_deploy on centos version 6.4
 
     Cookbook Trace:
+
     ---------------
-      /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:10:in `from_file'
+
+      /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:1:in `from_file'
 
     Relevant File Content:
+
     ----------------------
+
     /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:
 
-      1:  #
-      2:  # Cookbook Name:: myface
-      3:  # Recipe:: default
-      4:  #
-      5:  # Copyright (C) 2012 YOUR_NAME
-      6:  #
-      7:  # All rights reserved - Do Not Redistribute
-      8:  #
+      1>> artifact_deploy "myface" do
+      2:    version "1.0.0"
+      3:    artifact_location "http://dl.dropbox.com/u/31081437/myface-1.0.0.tar.gz"
+      4:    deploy_to "/srv/myface"
+      5:    owner "myface"
+      6:    group "myface"
+      7:    action :deploy
+      8:  end
       9:
 
-    [2012-09-20T20:39:04+00:00] ERROR: Running exception handlers
-    [2012-09-20T20:39:04+00:00] ERROR: Exception handlers complete
-    [2012-09-20T20:39:04+00:00] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
-    [2012-09-20T20:39:04+00:00] FATAL: NameError: Cannot find a resource for artifact_deploy on centos version 6.3
+
+    [2013-07-24T12:18:22-07:00] ERROR: Running exception handlers
+    [2013-07-24T12:18:22-07:00] ERROR: Exception handlers complete
+    [2013-07-24T12:18:22-07:00] FATAL: Stacktrace dumped to /var/chef/cache/chef-stacktrace.out
+    [2013-07-24T12:18:22-07:00] FATAL: Chef::Exceptions::ChildConvergeError: Chef run process exited unsuccessfully (exit code 1)
     Chef never successfully completed! Any errors should be visible in the
     output above. Please fix your recipes so that they properly complete.
 
-The important bit is the NameError. It appears that we do not have the resource `artifact_deploy` available on CentOS 6.3.
+The important bit is the NameError. It appears that we do not have the resource `artifact_deploy` available on CentOS 6.4.
 
-You can also see what file the error occurred in and on what line by looking at the Cookbook Trace section. In this case it's on line 10 in the default recipe of the myface cookbook.
+You can also see what file the error occurred in and on what line by looking at the Cookbook Trace section. In this case it's on line 1 in the default recipe of the myface cookbook.
 
-    /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:10:in `from_file'
+    /tmp/vagrant-chef-1/chef-solo-1/cookbooks/myface/recipes/default.rb:1:in `from_file'
 
 We actually don't have the `artifact_deploy` resource at all; it's not part of Chef or the only cookbook available to our Chef Client. This is because we haven't told our cookbook about the Artifact cookbook which contains the Light-weight Resource and Provider (LWRP) that provides `artifact_deploy` to our recipes.
 
@@ -306,24 +341,36 @@ Now you should have a `metadata.rb` file that looks like this
 Now re-run the vagrant provisioner and see what we get
 
     $ bundle exec vagrant provision
-    [Berkshelf] installing cookbooks...
-    [Berkshelf] Using myface (0.0.1) at path: '/Users/reset/code/myface'
-    [Berkshelf] Installing artifact (0.10.7) from site: 'http://cookbooks.opscode.com/api/v1/cookbooks'
-    [Berkshelf] Using nexus (0.11.2)
-    [Berkshelf] Using ark (0.0.11)
-    [Berkshelf] Using java (1.5.4)
-    [Berkshelf] Using nginx (0.101.6)
-    [Berkshelf] Using build-essential (1.1.2)
-    [Berkshelf] Using runit (0.15.0)
-    [Berkshelf] Using bluepill (1.1.0)
-    [Berkshelf] Using yum (0.8.0)
-    [Berkshelf] Using ohai (1.0.2)
-    [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
-    [default] Generating chef JSON and uploading...
-    [default] Running chef-solo...
+    [Berkshelf] Using myface (0.1.0)
+    [Berkshelf] Using artifact (0.10.10)
+    [Berkshelf] Using nexus (2.2.0)
+    [Berkshelf] Using java (1.9.6)
+    [Berkshelf] Using windows (1.10.0)
+    [Berkshelf] Using chef_handler (1.1.4)
+    [Berkshelf] Using nginx (1.6.0)
+    [Berkshelf] Using build-essential (1.4.0)
+    [Berkshelf] Using yum (2.3.0)
+    [Berkshelf] Using apt (2.0.0)
+    [Berkshelf] Using runit (1.1.6)
+    [Berkshelf] Using ohai (1.1.10)
+    [default] Chef 11.6.0 Omnibus package is already installed.
+    [default] Running provisioner: chef_solo...
+    Generating chef JSON and uploading...
+    Running chef-solo...
     ...
-    [2012-09-20T20:44:11+00:00] FATAL: Stacktrace dumped to /tmp/vagrant-chef-1/chef-stacktrace.out
-    [2012-09-20T20:44:11+00:00] FATAL: Chef::Exceptions::UserIDNotFound: artifact_deploy[myface] (myface::default line 10) had an error: Chef::Exceptions::UserIDNotFound: remote_file[/tmp/vagrant-chef-1/artifact_deploys/myface/1.0.0/myface-1.0.0.tar.gz] (/tmp/vagrant-chef-1/chef-solo-1/cookbooks/artifact/providers/deploy.rb line 252) had an error: Chef::Exceptions::UserIDNotFound: cannot determine user id for 'myface', does the user exist on this system?
+    ================================================================================
+
+    Error executing action `create` on resource 'remote_file[/var/chef/cache/artifact_deploys/myface/1.0.0/myface-1.0.0.tar.gz]'
+
+    ================================================================================
+    ...
+
+    Chef::Exceptions::UserIDNotFound
+
+    --------------------------------
+
+    cannot determine user id for 'myface', does the user exist on this system?
+    ...
 
 Well we don't have the NameError exception anymore but we have a new problem. The user that we're attempting to deploy the artifact with is not found on the system. It's a good idea to avoid running your applications as root and to create a user to run them. Let's create the 'myface' user.
 
@@ -423,7 +470,7 @@ Within a recipe attributes are accessed on the [Node Object](http://wiki.opscode
 So let's re-provision with Vagrant and see how our refactor went
 
     $ bundle exec vagrant provision
-    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: *** Chef 10.12.0 ***
+    [Mon, 23 Jul 2012 23:37:07 +0000] INFO: *** Chef 11.6.0 ***
     [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
     [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Run List is [recipe[myface::default]]
     [Mon, 23 Jul 2012 23:37:07 +0000] INFO: Run List expands to [myface::default]
@@ -461,7 +508,7 @@ re-run Vagrant provision and our attributes should replace our hardcoded strings
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
-    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: *** Chef 10.12.0 ***
+    [Tue, 24 Jul 2012 01:30:30 +0000] INFO: *** Chef 11.6.0 ***
     [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
     [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Run List is [recipe[myface::default]]
     [Tue, 24 Jul 2012 01:30:30 +0000] INFO: Run List expands to [myface::default]
@@ -575,7 +622,7 @@ Writing idempotent recipes is so important that we should give our Vagrant provi
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
-    [Wed, 25 Jul 2012 00:49:05 +0000] INFO: *** Chef 10.12.0 ***
+    [Wed, 25 Jul 2012 00:49:05 +0000] INFO: *** Chef 11.6.0 ***
     [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
     [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Run List is [recipe[myface::default]]
     [Wed, 25 Jul 2012 00:49:06 +0000] INFO: Run List expands to [myface::default]
@@ -668,7 +715,7 @@ To access Tomcat on port `8080` we'll need to open our Vagrantfile for editing a
 
       # Forward a port from the guest to the host, which allows for outside
       # computers to access the VM, whereas host only networking does not.
-      config.vm.forward_port 8080, 9090
+      config.vm.network :forwarded_port, guest: 8080, host: 9090
 
       ...
       end
@@ -757,7 +804,7 @@ Now re-provision with Vagrant
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
-    [Fri, 27 Jul 2012 21:11:28 +0000] INFO: *** Chef 10.12.0 ***
+    [Fri, 27 Jul 2012 21:11:28 +0000] INFO: *** Chef 11.6.0 ***
     [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
     [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Run List is [recipe[myface::default]]
     [Fri, 27 Jul 2012 21:11:29 +0000] INFO: Run List expands to [myface::default]
@@ -804,7 +851,7 @@ Now reload your virtual machine to have it pick up the changes
     [default] Running provisioner: Vagrant::Provisioners::ChefSolo...
     [default] Generating chef JSON and uploading...
     [default] Running chef-solo...
-    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: *** Chef 10.12.0 ***
+    [Fri, 27 Jul 2012 21:15:33 +0000] INFO: *** Chef 11.6.0 ***
     [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Setting the run_list to ["recipe[myface::default]"] from JSON
     [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Run List is [recipe[myface::default]]
     [Fri, 27 Jul 2012 21:15:33 +0000] INFO: Run List expands to [myface::default]
